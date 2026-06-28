@@ -1,13 +1,27 @@
 const API = '/api/students';
 const MONTHS = ['JN','FB','MR','AP','MY','JU','JL','AG','SP','OC','NV','DC'];
 const CUR_YEAR = new Date().getFullYear();
-const CUR_MONTH = MONTHS[new Date().getMonth()];
+const CUR_MONTH_IDX = new Date().getMonth();
+const CUR_MONTH = MONTHS[CUR_MONTH_IDX];
 
 let students = [];
 let currentStudent = null;
 let currentMonth = null;
 let currentYear = null;
 let isFamilyMark = false;
+
+// ── 7 months window (6 पीछे + current + 1 आगे) ──
+function getVisibleMonths() {
+  const visible = [];
+  for (let i = -6; i <= 1; i++) {
+    let idx = CUR_MONTH_IDX + i;
+    let year = CUR_YEAR;
+    if (idx < 0) { idx += 12; year -= 1; }
+    if (idx > 11) { idx -= 12; year += 1; }
+    visible.push({ month: MONTHS[idx], year });
+  }
+  return visible;
+}
 
 async function loadStudents() {
   try {
@@ -39,8 +53,15 @@ function renderStudents(list) {
     }
   });
 
+  // Alphabetical sort
+  Object.keys(groups).forEach(code => {
+    groups[code].sort((a, b) => a.name.localeCompare(b.name));
+  });
+  solo.sort((a, b) => a.name.localeCompare(b.name));
+
   let html = '';
 
+  // Family groups - alphabetical by code
   Object.keys(groups).sort().forEach(code => {
     const members = groups[code];
     const isDue = members.some(s => hasDue(s));
@@ -48,14 +69,17 @@ function renderStudents(list) {
     const headerClass = hasVerify ? 'verify' : isDue ? 'due' : '';
     const fee = members[0].monthlyFee || 0;
 
+    // नाम format: CODE NAME1 • CODE NAME2
+    const nameDisplay = members.map(m =>
+      `${code} ${m.name}${m.identity ? ' ' + m.identity : ''}`
+    ).join(' • ');
+
     html += `
     <div class="student-card">
       <div class="student-header ${headerClass}"
            onclick="toggleFees('grp-${code}')">
         <div>
-          <div class="student-name">
-            <span class="family-tag">${code}</span>
-            ${members.map(m => m.name).join(' • ')}
+          <div class="student-name">${nameDisplay}
             ${hasVerify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
           <div class="student-meta">
@@ -77,21 +101,28 @@ function renderStudents(list) {
       </div>
       <div class="fees-row" id="fees-grp-${code}" style="display:none">
         ${renderMonthBtns(members[0], code, true)}
-        <div style="width:100%;margin-top:0.5rem;font-size:0.75rem;color:#666;
-                    display:flex;flex-wrap:wrap;gap:0.5rem">
+        <button onclick="toggleArchive('arch-${code}')"
+          style="background:#eee;border:none;border-radius:4px;
+                 padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer;
+                 margin-top:0.3rem">📁 पुराना</button>
+        <div id="arch-${code}" style="display:none;width:100%;
+             margin-top:0.3rem;flex-wrap:wrap;gap:0.3rem">
+          ${renderArchiveBtns(members[0], code, true)}
+        </div>
+        <div style="width:100%;margin-top:0.5rem;font-size:0.75rem;
+                    color:#666;display:flex;flex-wrap:wrap;gap:0.5rem">
           ${members.map(m => `
             <span>
               ${m.name}:
               <button onclick="openMarkModal('${m._id}',null,null,false)"
                 style="background:none;border:1px solid #ddd;border-radius:4px;
-                       padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer;
-                       min-height:28px">
+                       padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer">
                 अलग mark
               </button>
               <button onclick="deleteStudent('${m._id}','${m.name}')"
                 style="background:none;border:1px solid #dc3545;color:#dc3545;
                        border-radius:4px;padding:0.2rem 0.5rem;
-                       font-size:0.7rem;cursor:pointer;min-height:28px">
+                       font-size:0.7rem;cursor:pointer">
                 हटाएं
               </button>
             </span>`).join('')}
@@ -100,19 +131,18 @@ function renderStudents(list) {
     </div>`;
   });
 
+  // Solo students - alphabetical
   solo.forEach(student => {
     const isDue = hasDue(student);
     const headerClass = student.verify ? 'verify' : isDue ? 'due' : '';
+    const nameDisplay = `${student.name}${student.identity ? ' ' + student.identity : ''}`;
 
     html += `
     <div class="student-card">
       <div class="student-header ${headerClass}"
            onclick="toggleFees('${student._id}')">
         <div>
-          <div class="student-name">
-            ${student.identity ?
-              `<span style="color:#666;font-size:0.8rem">${student.identity} </span>` : ''}
-            ${student.name}
+          <div class="student-name">${nameDisplay}
             ${student.verify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
           <div class="student-meta">
@@ -134,6 +164,14 @@ function renderStudents(list) {
       </div>
       <div class="fees-row" id="fees-${student._id}" style="display:none">
         ${renderMonthBtns(student, student._id, false)}
+        <button onclick="toggleArchive('arch-${student._id}')"
+          style="background:#eee;border:none;border-radius:4px;
+                 padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer;
+                 margin-top:0.3rem">📁 पुराना</button>
+        <div id="arch-${student._id}" style="display:none;width:100%;
+             margin-top:0.3rem;flex-wrap:wrap;gap:0.3rem">
+          ${renderArchiveBtns(student, student._id, false)}
+        </div>
       </div>
     </div>`;
   });
@@ -141,20 +179,51 @@ function renderStudents(list) {
   container.innerHTML = html;
 }
 
+// ── VISIBLE MONTHS (6 पीछे + current + 1 आगे) ──
 function renderMonthBtns(student, id, isFamily) {
-  return MONTHS.map(m => {
-    const fee = student.fees?.find(
-      f => f.month === m && f.year === CUR_YEAR
-    );
+  const visible = getVisibleMonths();
+  return visible.map(({ month, year }) => {
+    const fee = student.fees?.find(f => f.month === month && f.year === year);
     const status = fee ? fee.status : 'unpaid';
     const cls = `month-${status}`;
     const note = fee?.note ? ` (${fee.note})` : '';
+    const isCurrent = month === CUR_MONTH && year === CUR_YEAR;
 
-    return `<button class="month-btn ${cls}"
-      onclick="openMarkModal('${student._id}','${m}',${CUR_YEAR},${isFamily},'${id}')">
-      ${m}${note}
+    return `<button class="month-btn ${cls}${isCurrent ? ' current-month' : ''}"
+      onclick="openMarkModal('${student._id}','${month}',${year},${isFamily},'${id}')">
+      ${month}${year !== CUR_YEAR ? "'" + String(year).slice(2) : ''}${note}
     </button>`;
   }).join('');
+}
+
+// ── ARCHIVE MONTHS ──
+function renderArchiveBtns(student, id, isFamily) {
+  const visible = getVisibleMonths();
+  const visibleKeys = visible.map(v => v.month + v.year);
+
+  const archiveFees = (student.fees || []).filter(f =>
+    !visibleKeys.includes(f.month + f.year)
+  );
+
+  if (archiveFees.length === 0) {
+    return '<span style="font-size:0.75rem;color:#999">कोई पुराना record नहीं</span>';
+  }
+
+  return archiveFees.map(f => {
+    const cls = `month-${f.status}`;
+    const note = f.note ? ` (${f.note})` : '';
+    return `<button class="month-btn ${cls}"
+      onclick="openMarkModal('${student._id}','${f.month}',${f.year},${isFamily},'${id}')">
+      ${f.month}'${String(f.year).slice(2)}${note}
+    </button>`;
+  }).join('');
+}
+
+function toggleArchive(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'flex' : 'none';
 }
 
 function toggleFees(id) {
@@ -173,6 +242,7 @@ function hasDue(student) {
   return !fee || fee.status === 'unpaid' || fee.status === 'partial';
 }
 
+// ── FILTER ──
 function filterStudents() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const filter = document.getElementById('filterDue').value;
@@ -195,6 +265,7 @@ function filterStudents() {
   renderStudents(filtered);
 }
 
+// ── ADD STUDENT ──
 function openAddModal() {
   document.getElementById('addModal').classList.add('open');
 }
@@ -230,10 +301,11 @@ async function addStudent() {
   }
 }
 
+// ── MARK FEES ──
 function openMarkModal(studentId, month, year, isFamily, familyCode) {
   currentStudent = students.find(s => s._id === studentId);
   currentMonth = month || CUR_MONTH;
-  currentYear = year || CUR_YEAR;
+  currentYear = parseInt(year) || CUR_YEAR;
   isFamilyMark = isFamily;
   window.currentFamilyCode = familyCode;
 
@@ -280,6 +352,7 @@ async function saveFees() {
   }
 }
 
+// ── DELETE ──
 function showFamilyOptions(code) {
   const members = students.filter(s => s.familyCode === code);
   const names = members.map(m => m.name).join(', ');
@@ -308,8 +381,10 @@ async function deleteStudent(id, name) {
   }
 }
 
+// ── MODAL ──
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
+// ── INIT ──
 loadStudents();
