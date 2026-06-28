@@ -2,17 +2,21 @@ const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  identity: { type: String },
   familyCode: { type: String },
-  fatherName: { type: String },
-  class: { type: String },
-  board: { type: String, default: 'Bihar' },
   dueDate: { type: Number, enum: [1, 15] },
-  monthlyFee: { type: Number },
+  batch: { 
+    type: String, 
+    enum: ['1-5', '6-8', '9', '10', 'CBSE', ''],
+    default: ''
+  },
+  monthlyFee: { type: Number, default: 0 },
+  isFamilyFee: { type: Boolean, default: false },
   fees: [{
     month: { type: String },
     year: { type: Number },
-    status: {
-      type: String,
+    status: { 
+      type: String, 
       enum: ['paid', 'unpaid', 'partial', 'advance'],
       default: 'unpaid'
     },
