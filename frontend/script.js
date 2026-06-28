@@ -29,7 +29,6 @@ function renderStudents(list) {
     return;
   }
 
-  // Family के हिसाब से group करो
   const groups = {};
   const solo = [];
 
@@ -69,25 +68,31 @@ function renderStudents(list) {
           </div>
         </div>
         <div class="student-badges">
-  ${isDue ? '<span class="badge badge-red">Due</span>' :
-            '<span class="badge badge-green">Clear</span>'}
-  <button onclick="event.stopPropagation();showFamilyOptions('${code}')"
-    style="background:none;border:none;font-size:1rem;cursor:pointer">
-    ⋮
-  </button>
-  <span>▾</span>
-</div>
+          ${isDue ? '<span class="badge badge-red">Due</span>' :
+                    '<span class="badge badge-green">Clear</span>'}
+          <button onclick="event.stopPropagation();showFamilyOptions('${code}')"
+            style="background:none;border:none;font-size:1.2rem;
+                   cursor:pointer;padding:0 0.3rem">⋮</button>
+          <span>▾</span>
+        </div>
       </div>
       <div class="fees-row" id="fees-grp-${code}" style="display:none">
         ${renderMonthBtns(members[0], code, true)}
-        <div style="width:100%;margin-top:0.4rem;font-size:0.75rem;color:#666">
+        <div style="width:100%;margin-top:0.5rem;font-size:0.75rem;color:#666;
+                    display:flex;flex-wrap:wrap;gap:0.5rem">
           ${members.map(m => `
-            <span style="margin-right:0.8rem">
-              ${m.name}: 
+            <span>
+              ${m.name}:
               <button onclick="openMarkModal('${m._id}',null,null,false)"
                 style="background:none;border:1px solid #ddd;border-radius:4px;
                        padding:0.1rem 0.4rem;font-size:0.7rem;cursor:pointer">
                 अलग mark
+              </button>
+              <button onclick="deleteStudent('${m._id}','${m.name}')"
+                style="background:none;border:1px solid #dc3545;color:#dc3545;
+                       border-radius:4px;padding:0.1rem 0.4rem;
+                       font-size:0.7rem;cursor:pointer">
+                हटाएं
               </button>
             </span>`).join('')}
         </div>
@@ -107,8 +112,7 @@ function renderStudents(list) {
         <div>
           <div class="student-name">
             ${student.identity ?
-              `<span style="color:#666;font-size:0.8rem">
-                ${student.identity} </span>` : ''}
+              `<span style="color:#666;font-size:0.8rem">${student.identity} </span>` : ''}
             ${student.name}
             ${student.verify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
@@ -119,14 +123,13 @@ function renderStudents(list) {
           </div>
         </div>
         <div class="student-badges">
-  ${isDue ? '<span class="badge badge-red">Due</span>' :
-            '<span class="badge badge-green">Clear</span>'}
-  <button onclick="event.stopPropagation();deleteStudent('${student._id}','${student.name}')"
-    style="background:none;border:none;font-size:1rem;cursor:pointer">
-    🗑️
-  </button>
-  <span>▾</span>
-</div>
+          ${isDue ? '<span class="badge badge-red">Due</span>' :
+                    '<span class="badge badge-green">Clear</span>'}
+          <button onclick="event.stopPropagation();deleteStudent('${student._id}','${student.name}')"
+            style="background:none;border:none;font-size:1rem;
+                   cursor:pointer;padding:0 0.3rem">🗑️</button>
+          <span>▾</span>
+        </div>
       </div>
       <div class="fees-row" id="fees-${student._id}" style="display:none">
         ${renderMonthBtns(student, student._id, false)}
@@ -147,8 +150,7 @@ function renderMonthBtns(student, id, isFamily) {
     const note = fee?.note ? ` (${fee.note})` : '';
 
     return `<button class="month-btn ${cls}"
-      onclick="openMarkModal('${student._id}','${m}',
-        ${CUR_YEAR},${isFamily},'${id}')">
+      onclick="openMarkModal('${student._id}','${m}',${CUR_YEAR},${isFamily},'${id}')">
       ${m}${note}
     </button>`;
   }).join('');
@@ -198,12 +200,6 @@ function openAddModal() {
   document.getElementById('addModal').classList.add('open');
 }
 
-function toggleFamilyFee() {
-  const checked = document.getElementById('newIsFamilyFee').checked;
-  document.getElementById('newFamilyCode').style.display =
-    checked ? 'block' : 'block';
-}
-
 async function addStudent() {
   const name = document.getElementById('newName').value.trim();
   if (!name) { alert('नाम डालें!'); return; }
@@ -227,10 +223,8 @@ async function addStudent() {
     });
     closeModal('addModal');
     loadStudents();
-    ['newName','newIdentity','newFamilyCode',
-     'newFee','newJoinDate'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
+    ['newName','newIdentity','newFamilyCode','newFee','newJoinDate']
+      .forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('newIsFamilyFee').checked = false;
   } catch (err) {
     alert('Error: ' + err.message);
@@ -285,6 +279,35 @@ async function saveFees() {
     loadStudents();
   } catch (err) {
     alert('Error: ' + err.message);
+  }
+}
+
+// ── DELETE ──
+function showFamilyOptions(code) {
+  const members = students.filter(s => s.familyCode === code);
+  const names = members.map(m => m.name).join(', ');
+  if (confirm(`"${code}" family delete करें?\n(${names})\n\nसिर्फ एक member हटाना हो तो Cancel करें और card खोलें`)) {
+    deleteFamily(code);
+  }
+}
+
+async function deleteFamily(code) {
+  try {
+    await fetch(`${API}/family/${code}`, { method: 'DELETE' });
+    loadStudents();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function deleteStudent(id, name) {
+  if (confirm(`"${name}" को हटाएं?`)) {
+    try {
+      await fetch(`${API}/${id}`, { method: 'DELETE' });
+      loadStudents();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
   }
 }
 
