@@ -1,0 +1,222 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+:root {
+  --green: #1a7a4a;
+  --gold: #e6a817;
+  --dark: #0f2d1f;
+  --light: #f5f9f6;
+  --red: #dc3545;
+  --orange: #fd7e14;
+  --blue: #0d6efd;
+}
+
+body {
+  background: var(--light);
+  color: var(--dark);
+}
+
+/* NAVBAR */
+nav {
+  background: var(--dark);
+  padding: 0.8rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  color: var(--gold);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.btn-add {
+  background: var(--gold);
+  color: var(--dark);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* TOOLBAR */
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: white;
+  border-bottom: 1px solid #ddd;
+}
+.toolbar input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+.toolbar select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* CONTAINER */
+.container {
+  padding: 0.8rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* STUDENT CARD */
+.student-card {
+  background: white;
+  border-radius: 10px;
+  margin-bottom: 0.8rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  overflow: hidden;
+}
+.student-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  border-left: 4px solid var(--green);
+}
+.student-header.due {
+  border-left-color: var(--red);
+}
+.student-header.verify {
+  border-left-color: var(--orange);
+}
+.student-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.student-meta {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.2rem;
+}
+.student-badges {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.badge-green { background: #d4edda; color: #1a7a4a; }
+.badge-red { background: #f8d7da; color: #721c24; }
+.badge-gold { background: #fff3cd; color: #856404; }
+.badge-blue { background: #d1ecf1; color: #0c6075; }
+
+/* FEES ROW */
+.fees-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem 0.8rem;
+  border-top: 1px solid #eee;
+}
+.month-btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.month-btn:active { transform: scale(0.95); }
+.month-paid { background: #d4edda; color: #1a7a4a; text-decoration: line-through; }
+.month-unpaid { background: #f8d7da; color: #721c24; }
+.month-partial { background: #fff3cd; color: #856404; }
+.month-advance { background: #d1ecf1; color: #0c6075; }
+
+/* MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  justify-content: center;
+  align-items: flex-end;
+}
+.modal.open {
+  display: flex;
+}
+.modal-box {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 16px 16px 0 0;
+  padding: 1.5rem 1rem;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.modal-box h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--green);
+}
+.modal-box input,
+.modal-box select {
+  width: 100%;
+  padding: 0.6rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.modal-btns {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.modal-btns button {
+  flex: 1;
+  padding: 0.7rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.modal-btns button:first-child {
+  background: var(--green);
+  color: white;
+}
+.modal-btns button:last-child {
+  background: #eee;
+  color: var(--dark);
+}
+
+/* FEES GRID */
+.fees-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.fees-grid-btn {
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
