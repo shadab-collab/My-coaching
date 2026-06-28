@@ -9,7 +9,6 @@ let currentMonth = null;
 let currentYear = null;
 let isFamilyMark = false;
 
-// ── LOAD ──
 async function loadStudents() {
   try {
     const res = await fetch(API);
@@ -20,7 +19,6 @@ async function loadStudents() {
   }
 }
 
-// ── RENDER ──
 function renderStudents(list) {
   const container = document.getElementById('studentList');
 
@@ -43,7 +41,6 @@ function renderStudents(list) {
 
   let html = '';
 
-  // Family groups
   Object.keys(groups).sort().forEach(code => {
     const members = groups[code];
     const isDue = members.some(s => hasDue(s));
@@ -71,8 +68,10 @@ function renderStudents(list) {
           ${isDue ? '<span class="badge badge-red">Due</span>' :
                     '<span class="badge badge-green">Clear</span>'}
           <button onclick="event.stopPropagation();showFamilyOptions('${code}')"
-            style="background:none;border:none;font-size:1.2rem;
-                   cursor:pointer;padding:0 0.3rem">⋮</button>
+            style="background:#dc3545;color:white;border:none;
+                   border-radius:4px;font-size:0.75rem;font-weight:700;
+                   cursor:pointer;padding:0.3rem 0.6rem;margin:0 0.3rem;
+                   min-width:40px;min-height:32px">Del</button>
           <span>▾</span>
         </div>
       </div>
@@ -85,13 +84,14 @@ function renderStudents(list) {
               ${m.name}:
               <button onclick="openMarkModal('${m._id}',null,null,false)"
                 style="background:none;border:1px solid #ddd;border-radius:4px;
-                       padding:0.1rem 0.4rem;font-size:0.7rem;cursor:pointer">
+                       padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer;
+                       min-height:28px">
                 अलग mark
               </button>
               <button onclick="deleteStudent('${m._id}','${m.name}')"
                 style="background:none;border:1px solid #dc3545;color:#dc3545;
-                       border-radius:4px;padding:0.1rem 0.4rem;
-                       font-size:0.7rem;cursor:pointer">
+                       border-radius:4px;padding:0.2rem 0.5rem;
+                       font-size:0.7rem;cursor:pointer;min-height:28px">
                 हटाएं
               </button>
             </span>`).join('')}
@@ -100,7 +100,6 @@ function renderStudents(list) {
     </div>`;
   });
 
-  // Solo students
   solo.forEach(student => {
     const isDue = hasDue(student);
     const headerClass = student.verify ? 'verify' : isDue ? 'due' : '';
@@ -126,8 +125,10 @@ function renderStudents(list) {
           ${isDue ? '<span class="badge badge-red">Due</span>' :
                     '<span class="badge badge-green">Clear</span>'}
           <button onclick="event.stopPropagation();deleteStudent('${student._id}','${student.name}')"
-            style="background:none;border:none;font-size:1rem;
-                   cursor:pointer;padding:0 0.3rem">🗑️</button>
+            style="background:#dc3545;color:white;border:none;
+                   border-radius:4px;font-size:0.75rem;font-weight:700;
+                   cursor:pointer;padding:0.3rem 0.6rem;margin:0 0.3rem;
+                   min-width:40px;min-height:32px">Del</button>
           <span>▾</span>
         </div>
       </div>
@@ -172,7 +173,6 @@ function hasDue(student) {
   return !fee || fee.status === 'unpaid' || fee.status === 'partial';
 }
 
-// ── FILTER ──
 function filterStudents() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const filter = document.getElementById('filterDue').value;
@@ -195,7 +195,6 @@ function filterStudents() {
   renderStudents(filtered);
 }
 
-// ── ADD STUDENT ──
 function openAddModal() {
   document.getElementById('addModal').classList.add('open');
 }
@@ -231,7 +230,6 @@ async function addStudent() {
   }
 }
 
-// ── MARK FEES ──
 function openMarkModal(studentId, month, year, isFamily, familyCode) {
   currentStudent = students.find(s => s._id === studentId);
   currentMonth = month || CUR_MONTH;
@@ -282,7 +280,6 @@ async function saveFees() {
   }
 }
 
-// ── DELETE ──
 function showFamilyOptions(code) {
   const members = students.filter(s => s.familyCode === code);
   const names = members.map(m => m.name).join(', ');
@@ -311,10 +308,8 @@ async function deleteStudent(id, name) {
   }
 }
 
-// ── MODAL ──
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-// ── INIT ──
 loadStudents();
