@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shadab Coaching Centre</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <span class="logo">📚 Shadab Coaching Centre</span>
+    <button class="btn-add" onclick="openAddModal()">+ Student</button>
+  </nav>
+
+  <!-- SEARCH & FILTER -->
+  <div class="toolbar">
+    <input type="text" id="searchInput" 
+      placeholder="🔍 नाम खोजें..." 
+      oninput="filterStudents()"/>
+    <select id="filterDue" onchange="filterStudents()">
+      <option value="all">सभी</option>
+      <option value="due">Due बाकी</option>
+      <option value="01">1 तारीख वाले</option>
+      <option value="15">15 तारीख वाले</option>
+    </select>
+  </div>
+
+  <!-- STUDENT LIST -->
+  <div class="container">
+    <div id="studentList"></div>
+  </div>
+
+  <!-- ADD STUDENT MODAL -->
+  <div class="modal" id="addModal">
+    <div class="modal-box">
+      <h2>नया Student</h2>
+      <input type="text" id="newName" placeholder="नाम *"/>
+      <input type="text" id="newFamilyCode" placeholder="Family Code (जैसे RA, KA)"/>
+      <input type="text" id="newFatherName" placeholder="Father's Name"/>
+      <input type="text" id="newClass" placeholder="Class (जैसे 8, 1-5)"/>
+      <select id="newBoard">
+        <option value="Bihar">Bihar Board</option>
+        <option value="CBSE">CBSE</option>
+      </select>
+      <select id="newDueDate">
+        <option value="1">1 तारीख</option>
+        <option value="15">15 तारीख</option>
+      </select>
+      <input type="number" id="newFee" placeholder="Monthly Fee (₹)"/>
+      <input type="date" id="newJoinDate"/>
+      <div class="modal-btns">
+        <button onclick="addStudent()">Save</button>
+        <button onclick="closeModal('addModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEES MODAL -->
+  <div class="modal" id="feesModal">
+    <div class="modal-box">
+      <h2 id="feesModalTitle"></h2>
+      <div id="feesGrid"></div>
+      <div class="modal-btns">
+        <button onclick="closeModal('feesModal')">बंद करें</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARK FEES MODAL -->
+  <div class="modal" id="markModal">
+    <div class="modal-box">
+      <h2>Fees Mark करें</h2>
+      <p id="markInfo"></p>
+      <select id="markStatus">
+        <option value="paid">✅ Paid (पूरा)</option>
+        <option value="partial">⚠️ Partial (आंशिक)</option>
+        <option value="advance">⏭️ Advance</option>
+        <option value="unpaid">❌ Unpaid</option>
+      </select>
+      <input type="number" id="markAmount" placeholder="Amount (₹)"/>
+      <input type="text" id="markNote" placeholder="Note (जैसे +200 जमा)"/>
+      <div class="modal-btns">
+        <button onclick="saveFees()">Save</button>
+        <button onclick="closeModal('markModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
