@@ -16,14 +16,19 @@
 
   <!-- SEARCH & FILTER -->
   <div class="toolbar">
-    <input type="text" id="searchInput" 
-      placeholder="🔍 नाम खोजें..." 
+    <input type="text" id="searchInput"
+      placeholder="🔍 नाम खोजें..."
       oninput="filterStudents()"/>
     <select id="filterDue" onchange="filterStudents()">
       <option value="all">सभी</option>
       <option value="due">Due बाकी</option>
-      <option value="01">1 तारीख वाले</option>
-      <option value="15">15 तारीख वाले</option>
+      <option value="1">1 तारीख</option>
+      <option value="15">15 तारीख</option>
+      <option value="1-5">Batch 1-5</option>
+      <option value="6-8">Batch 6-8</option>
+      <option value="9">Batch 9</option>
+      <option value="10">Batch 10</option>
+      <option value="CBSE">CBSE</option>
     </select>
   </div>
 
@@ -36,19 +41,27 @@
   <div class="modal" id="addModal">
     <div class="modal-box">
       <h2>नया Student</h2>
-      <input type="text" id="newName" placeholder="नाम *"/>
-      <input type="text" id="newFamilyCode" placeholder="Family Code (जैसे RA, KA)"/>
-      <input type="text" id="newFatherName" placeholder="Father's Name"/>
-      <input type="text" id="newClass" placeholder="Class (जैसे 8, 1-5)"/>
-      <select id="newBoard">
-        <option value="Bihar">Bihar Board</option>
+      <input type="text" id="newName" placeholder="Student का नाम *"/>
+      <input type="text" id="newIdentity" placeholder="पहचान (Family code / Guardian)"/>
+      <input type="text" id="newFamilyCode" placeholder="Family Code (AA, KA, MITTHU...)"/>
+      <div class="toggle-row">
+        <label>Family Fee है?</label>
+        <input type="checkbox" id="newIsFamilyFee" 
+          onchange="toggleFamilyFee()"/>
+      </div>
+      <input type="number" id="newFee" placeholder="Monthly Fee (₹)"/>
+      <select id="newBatch">
+        <option value="">Batch select करें</option>
+        <option value="1-5">Class 1-5</option>
+        <option value="6-8">Class 6-8</option>
+        <option value="9">Class 9</option>
+        <option value="10">Class 10</option>
         <option value="CBSE">CBSE</option>
       </select>
       <select id="newDueDate">
         <option value="1">1 तारीख</option>
         <option value="15">15 तारीख</option>
       </select>
-      <input type="number" id="newFee" placeholder="Monthly Fee (₹)"/>
       <input type="date" id="newJoinDate"/>
       <div class="modal-btns">
         <button onclick="addStudent()">Save</button>
@@ -57,22 +70,12 @@
     </div>
   </div>
 
-  <!-- FEES MODAL -->
-  <div class="modal" id="feesModal">
-    <div class="modal-box">
-      <h2 id="feesModalTitle"></h2>
-      <div id="feesGrid"></div>
-      <div class="modal-btns">
-        <button onclick="closeModal('feesModal')">बंद करें</button>
-      </div>
-    </div>
-  </div>
-
   <!-- MARK FEES MODAL -->
   <div class="modal" id="markModal">
     <div class="modal-box">
       <h2>Fees Mark करें</h2>
-      <p id="markInfo"></p>
+      <p id="markInfo" style="margin-bottom:0.8rem;font-weight:600;
+         color:#1a7a4a"></p>
       <select id="markStatus">
         <option value="paid">✅ Paid (पूरा)</option>
         <option value="partial">⚠️ Partial (आंशिक)</option>
