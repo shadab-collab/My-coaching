@@ -69,10 +69,14 @@ function renderStudents(list) {
           </div>
         </div>
         <div class="student-badges">
-          ${isDue ? '<span class="badge badge-red">Due</span>' :
-                    '<span class="badge badge-green">Clear</span>'}
-          <span>▾</span>
-        </div>
+  ${isDue ? '<span class="badge badge-red">Due</span>' :
+            '<span class="badge badge-green">Clear</span>'}
+  <button onclick="event.stopPropagation();showFamilyOptions('${code}')"
+    style="background:none;border:none;font-size:1rem;cursor:pointer">
+    ⋮
+  </button>
+  <span>▾</span>
+</div>
       </div>
       <div class="fees-row" id="fees-grp-${code}" style="display:none">
         ${renderMonthBtns(members[0], code, true)}
