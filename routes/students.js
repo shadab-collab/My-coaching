@@ -91,5 +91,14 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Family delete
+router.delete('/family/:code', async (req, res) => {
+  try {
+    await Student.deleteMany({ familyCode: req.params.code });
+    res.json({ message: 'Family delete हो गई' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
