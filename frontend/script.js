@@ -1,14 +1,15 @@
 const API = '/api/students';
 const MONTHS = ['JN','FB','MR','AP','MY','JU','JL','AG','SP','OC','NV','DC'];
-const MONTH_NAMES = ['January','February','March','April','May','June',
-                     'July','August','September','October','November','December'];
+const CUR_YEAR = new Date().getFullYear();
+const CUR_MONTH = MONTHS[new Date().getMonth()];
 
 let students = [];
 let currentStudent = null;
 let currentMonth = null;
 let currentYear = null;
+let isFamilyMark = false;
 
-// ── DATA LOAD ──
+// ── LOAD ──
 async function loadStudents() {
   try {
     const res = await fetch(API);
@@ -22,64 +23,124 @@ async function loadStudents() {
 // ── RENDER ──
 function renderStudents(list) {
   const container = document.getElementById('studentList');
-  
+
   if (list.length === 0) {
     container.innerHTML = '<p style="text-align:center;padding:2rem;color:#666;">कोई student नहीं मिला</p>';
     return;
   }
 
-  container.innerHTML = list.map(student => {
+  // Family के हिसाब से group करो
+  const groups = {};
+  const solo = [];
+
+  list.forEach(s => {
+    if (s.familyCode) {
+      if (!groups[s.familyCode]) groups[s.familyCode] = [];
+      groups[s.familyCode].push(s);
+    } else {
+      solo.push(s);
+    }
+  });
+
+  let html = '';
+
+  // Family groups
+  Object.keys(groups).sort().forEach(code => {
+    const members = groups[code];
+    const isDue = members.some(s => hasDue(s));
+    const hasVerify = members.some(s => s.verify);
+    const headerClass = hasVerify ? 'verify' : isDue ? 'due' : '';
+    const fee = members[0].monthlyFee || 0;
+
+    html += `
+    <div class="student-card">
+      <div class="student-header ${headerClass}"
+           onclick="toggleFees('grp-${code}')">
+        <div>
+          <div class="student-name">
+            <span class="family-tag">${code}</span>
+            ${members.map(m => m.name).join(' • ')}
+            ${hasVerify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
+          </div>
+          <div class="student-meta">
+            Due: ${members[0].dueDate} तारीख •
+            ${members[0].batch ? 'Batch ' + members[0].batch + ' • ' : ''}
+            ₹${fee}/month
+          </div>
+        </div>
+        <div class="student-badges">
+          ${isDue ? '<span class="badge badge-red">Due</span>' :
+                    '<span class="badge badge-green">Clear</span>'}
+          <span>▾</span>
+        </div>
+      </div>
+      <div class="fees-row" id="fees-grp-${code}" style="display:none">
+        ${renderMonthBtns(members[0], code, true)}
+        <div style="width:100%;margin-top:0.4rem;font-size:0.75rem;color:#666">
+          ${members.map(m => `
+            <span style="margin-right:0.8rem">
+              ${m.name}: 
+              <button onclick="openMarkModal('${m._id}',null,null,false)"
+                style="background:none;border:1px solid #ddd;border-radius:4px;
+                       padding:0.1rem 0.4rem;font-size:0.7rem;cursor:pointer">
+                अलग mark
+              </button>
+            </span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  // Solo students
+  solo.forEach(student => {
     const isDue = hasDue(student);
     const headerClass = student.verify ? 'verify' : isDue ? 'due' : '';
-    
-    return `
+
+    html += `
     <div class="student-card">
-      <div class="student-header ${headerClass}" 
+      <div class="student-header ${headerClass}"
            onclick="toggleFees('${student._id}')">
         <div>
           <div class="student-name">
-            ${student.familyCode ? 
-              `<span style="color:#666;font-size:0.8rem">${student.familyCode} </span>` : ''}
+            ${student.identity ?
+              `<span style="color:#666;font-size:0.8rem">
+                ${student.identity} </span>` : ''}
             ${student.name}
             ${student.verify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
           <div class="student-meta">
-            Class ${student.class || '-'} • 
-            ${student.board || 'Bihar'} • 
-            Due: ${student.dueDate} तारीख • 
+            Due: ${student.dueDate} तारीख •
+            ${student.batch ? 'Batch ' + student.batch + ' • ' : ''}
             ₹${student.monthlyFee || 0}/month
           </div>
         </div>
         <div class="student-badges">
-          ${isDue ? '<span class="badge badge-red">Due</span>' : 
+          ${isDue ? '<span class="badge badge-red">Due</span>' :
                     '<span class="badge badge-green">Clear</span>'}
-          <span style="font-size:1.2rem">▾</span>
+          <span>▾</span>
         </div>
       </div>
       <div class="fees-row" id="fees-${student._id}" style="display:none">
-        ${renderMonthBtns(student)}
-        <button onclick="openMarkModal('${student._id}', null, null)" 
-          style="background:#eee;border:none;padding:0.3rem 0.6rem;
-                 border-radius:6px;font-size:0.75rem;cursor:pointer">
-          + Month Add
-        </button>
+        ${renderMonthBtns(student, student._id, false)}
       </div>
     </div>`;
-  }).join('');
+  });
+
+  container.innerHTML = html;
 }
 
-function renderMonthBtns(student) {
-  const currentYear = new Date().getFullYear();
-  const months = ['JN','FB','MR','AP','MY','JU','JL','AG','SP','OC','NV','DC'];
-  
-  return months.map((m, i) => {
-    const fee = student.fees?.find(f => f.month === m && f.year === currentYear);
+function renderMonthBtns(student, id, isFamily) {
+  return MONTHS.map(m => {
+    const fee = student.fees?.find(
+      f => f.month === m && f.year === CUR_YEAR
+    );
     const status = fee ? fee.status : 'unpaid';
     const cls = `month-${status}`;
     const note = fee?.note ? ` (${fee.note})` : '';
-    
-    return `<button class="month-btn ${cls}" 
-      onclick="openMarkModal('${student._id}', '${m}', ${currentYear})">
+
+    return `<button class="month-btn ${cls}"
+      onclick="openMarkModal('${student._id}','${m}',
+        ${CUR_YEAR},${isFamily},'${id}')">
       ${m}${note}
     </button>`;
   }).join('');
@@ -87,16 +148,16 @@ function renderMonthBtns(student) {
 
 function toggleFees(id) {
   const el = document.getElementById(`fees-${id}`);
-  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'flex' : 'none';
   el.style.flexWrap = 'wrap';
+  el.style.gap = '0.4rem';
 }
 
 function hasDue(student) {
-  const now = new Date();
-  const currentMonth = MONTHS[now.getMonth()];
-  const currentYear = now.getFullYear();
-  const fee = student.fees?.find(f => 
-    f.month === currentMonth && f.year === currentYear
+  const fee = student.fees?.find(
+    f => f.month === CUR_MONTH && f.year === CUR_YEAR
   );
   return !fee || fee.status === 'unpaid' || fee.status === 'partial';
 }
@@ -105,20 +166,22 @@ function hasDue(student) {
 function filterStudents() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const filter = document.getElementById('filterDue').value;
-  
+
   let filtered = students.filter(s => {
-    const name = (s.familyCode + ' ' + s.name).toLowerCase();
-    return name.includes(search);
+    const fullName = ((s.identity || '') + ' ' +
+                      s.name + ' ' +
+                      (s.familyCode || '')).toLowerCase();
+    return fullName.includes(search);
   });
-  
+
   if (filter === 'due') {
     filtered = filtered.filter(s => hasDue(s));
-  } else if (filter === '01') {
-    filtered = filtered.filter(s => s.dueDate === 1);
-  } else if (filter === '15') {
-    filtered = filtered.filter(s => s.dueDate === 15);
+  } else if (filter === '1' || filter === '15') {
+    filtered = filtered.filter(s => s.dueDate === parseInt(filter));
+  } else if (['1-5','6-8','9','10','CBSE'].includes(filter)) {
+    filtered = filtered.filter(s => s.batch === filter);
   }
-  
+
   renderStudents(filtered);
 }
 
@@ -127,21 +190,27 @@ function openAddModal() {
   document.getElementById('addModal').classList.add('open');
 }
 
+function toggleFamilyFee() {
+  const checked = document.getElementById('newIsFamilyFee').checked;
+  document.getElementById('newFamilyCode').style.display =
+    checked ? 'block' : 'block';
+}
+
 async function addStudent() {
   const name = document.getElementById('newName').value.trim();
   if (!name) { alert('नाम डालें!'); return; }
-  
+
   const data = {
     name,
+    identity: document.getElementById('newIdentity').value.trim(),
     familyCode: document.getElementById('newFamilyCode').value.trim(),
-    fatherName: document.getElementById('newFatherName').value.trim(),
-    class: document.getElementById('newClass').value.trim(),
-    board: document.getElementById('newBoard').value,
-    dueDate: parseInt(document.getElementById('newDueDate').value),
+    isFamilyFee: document.getElementById('newIsFamilyFee').checked,
     monthlyFee: parseInt(document.getElementById('newFee').value) || 0,
+    batch: document.getElementById('newBatch').value,
+    dueDate: parseInt(document.getElementById('newDueDate').value),
     joinDate: document.getElementById('newJoinDate').value,
   };
-  
+
   try {
     await fetch(API, {
       method: 'POST',
@@ -150,33 +219,38 @@ async function addStudent() {
     });
     closeModal('addModal');
     loadStudents();
-    // Clear fields
-    ['newName','newFamilyCode','newFatherName',
-     'newClass','newFee','newJoinDate'].forEach(id => {
+    ['newName','newIdentity','newFamilyCode',
+     'newFee','newJoinDate'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    document.getElementById('newIsFamilyFee').checked = false;
   } catch (err) {
     alert('Error: ' + err.message);
   }
 }
 
 // ── MARK FEES ──
-function openMarkModal(studentId, month, year) {
+function openMarkModal(studentId, month, year, isFamily, familyCode) {
   currentStudent = students.find(s => s._id === studentId);
-  currentMonth = month || MONTHS[new Date().getMonth()];
-  currentYear = year || new Date().getFullYear();
-  
+  currentMonth = month || CUR_MONTH;
+  currentYear = year || CUR_YEAR;
+  isFamilyMark = isFamily;
+  window.currentFamilyCode = familyCode;
+
   const existing = currentStudent.fees?.find(
     f => f.month === currentMonth && f.year === currentYear
   );
-  
-  document.getElementById('markInfo').textContent = 
+
+  const label = isFamily ?
+    `${familyCode} family — ${currentMonth} ${currentYear}` :
     `${currentStudent.name} — ${currentMonth} ${currentYear}`;
+
+  document.getElementById('markInfo').textContent = label;
   document.getElementById('markStatus').value = existing?.status || 'paid';
-  document.getElementById('markAmount').value = 
+  document.getElementById('markAmount').value =
     existing?.paidAmount || currentStudent.monthlyFee || '';
   document.getElementById('markNote').value = existing?.note || '';
-  
+
   document.getElementById('markModal').classList.add('open');
 }
 
@@ -188,9 +262,13 @@ async function saveFees() {
     paidAmount: parseInt(document.getElementById('markAmount').value) || 0,
     note: document.getElementById('markNote').value.trim()
   };
-  
+
   try {
-    await fetch(`${API}/${currentStudent._id}/fees`, {
+    const url = isFamilyMark ?
+      `${API}/family/${window.currentFamilyCode}/fees` :
+      `${API}/${currentStudent._id}/fees`;
+
+    await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
