@@ -51,9 +51,9 @@ router.put('/:id/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
     const student = await Student.findById(req.params.id);
-    const feeIndex = student.fees.findIndex(f => f.month === month && f.year === year);
-    if (feeIndex > -1) {
-      student.fees[feeIndex] = { month, year, status, paidAmount, note, paidOn: new Date() };
+    const idx = student.fees.findIndex(f => f.month === month && f.year === year);
+    if (idx > -1) {
+      student.fees[idx] = { month, year, status, paidAmount, note, paidOn: new Date() };
     } else {
       student.fees.push({ month, year, status, paidAmount, note, paidOn: new Date() });
     }
@@ -68,16 +68,25 @@ router.put('/family/:code/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
     const students = await Student.find({ familyCode: req.params.code, active: true });
-    for (let student of students) {
-      const feeIndex = student.fees.findIndex(f => f.month === month && f.year === year);
-      if (feeIndex > -1) {
-        student.fees[feeIndex] = { month, year, status, paidAmount, note, paidOn: new Date() };
+    for (let s of students) {
+      const idx = s.fees.findIndex(f => f.month === month && f.year === year);
+      if (idx > -1) {
+        s.fees[idx] = { month, year, status, paidAmount, note, paidOn: new Date() };
       } else {
-        student.fees.push({ month, year, status, paidAmount, note, paidOn: new Date() });
+        s.fees.push({ month, year, status, paidAmount, note, paidOn: new Date() });
       }
-      await student.save();
+      await s.save();
     }
-    res.json({ message: 'Family fees updated' });
+    res.json({ message: 'done' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/family/:code', async (req, res) => {
+  try {
+    await Student.deleteMany({ familyCode: req.params.code });
+    res.json({ message: 'Family deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -86,16 +95,7 @@ router.put('/family/:code/fees', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await Student.findByIdAndUpdate(req.params.id, { active: false });
-    res.json({ message: 'Student removed' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// Family delete
-router.delete('/family/:code', async (req, res) => {
-  try {
-    await Student.deleteMany({ familyCode: req.params.code });
-    res.json({ message: 'Family delete हो गई' });
+    res.json({ message: 'done' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
