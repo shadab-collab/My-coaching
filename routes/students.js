@@ -3,7 +3,7 @@ const router = express.Router();
 const Student = require('../models/student');
 const Family = require('../models/family');
 
-// आज की तारीख को "DD MMM YYYY" फ़ॉर्मेट में बदलने का फंक्शन (e.g. 29 Jun 2026)
+// आज की तारीख को "DD MMM YYYY" फ़ॉर्मेट में बदलने का फंक्शन
 function getFormattedTodayDate() {
   const d = new Date();
   const day = d.getDate();
@@ -57,14 +57,12 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// इंडिविजुअल फीस मार्क करने पर "कब दिये" दर्ज करना
 router.put('/:id/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
     const student = await Student.findById(req.params.id);
     const idx = student.fees.findIndex(f => f.month === month && f.year === year);
     
-    // अगर स्टेटस paid या advance है तो आज की तारीख, वर्ना 'बाकी'
     const paidOnDate = (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
 
     if (idx > -1) {
@@ -79,7 +77,6 @@ router.put('/:id/fees', async (req, res) => {
   }
 });
 
-// पूरी फैमिली की फीस एक साथ मार्क करने पर "कब दिये" दर्ज करना
 router.put('/family/:code/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;

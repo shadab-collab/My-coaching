@@ -5,8 +5,8 @@ const studentSchema = new mongoose.Schema({
   identity: { type: String },
   familyCode: { type: String },
   dueDate: { type: Number, enum: [1, 15] },
-  batch: { 
-    type: String, 
+  batch: {
+    type: String,
     enum: ['1-5', '6-8', '9', '10', 'CBSE', ''],
     default: ''
   },
@@ -15,13 +15,13 @@ const studentSchema = new mongoose.Schema({
   fees: [{
     month: { type: String },
     year: { type: Number },
-    status: { 
-      type: String, 
+    status: {
+      type: String,
       enum: ['paid', 'unpaid', 'partial', 'advance'],
       default: 'unpaid'
     },
     paidAmount: { type: Number, default: 0 },
-    paidOn: { type: String, default: 'बाकी' }, // "कब दिये" - जैसे "09 Jan 2026" या "बाकी"
+    paidOn: { type: String, default: 'बाकी' },
     note: { type: String }
   }],
   joinDate: { type: Date },
@@ -30,4 +30,3 @@ const studentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Student', studentSchema);
-

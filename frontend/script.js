@@ -1,4 +1,4 @@
-javascript
+// API डिक्लेरेशन सबसे ऊपर ताकि 'before initialization' एरर दोबारा कभी न आए
 const API = '/api/students';
 const MONTHS = ['JN','FB','MR','AP','MY','JU','JL','AG','SP','OC','NV','DC'];
 const CUR_YEAR = new Date().getFullYear();
@@ -10,6 +10,27 @@ let currentStudent = null;
 let currentMonth = null;
 let currentYear = null;
 let isFamilyMark = false;
+
+// कस्टम पॉपअप्स
+function showCustomAlert(msg) {
+  document.getElementById('customAlertMessage').innerText = msg;
+  document.getElementById('customAlertModal').classList.add('open');
+}
+
+function showCustomConfirm(msg, onConfirmCallback) {
+  document.getElementById('customConfirmMessage').innerText = msg;
+  const yesBtn = document.getElementById('customConfirmYesBtn');
+  
+  const newYesBtn = yesBtn.cloneNode(true);
+  yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+  
+  newYesBtn.addEventListener('click', () => {
+    closeModal('customConfirmModal');
+    onConfirmCallback();
+  });
+  
+  document.getElementById('customConfirmModal').classList.add('open');
+}
 
 function getVisibleMonths() {
   const visible = [];
@@ -30,6 +51,7 @@ async function loadStudents() {
     renderStudents(students);
   } catch (err) {
     console.error('Error:', err);
+    showCustomAlert('डेटा लोड करने में समस्या: ' + err.message);
   }
 }
 
@@ -283,13 +305,9 @@ function openAddModal() {
   document.getElementById('addModal').classList.add('open');
 }
 
-function toggleFamilyFeeUI() {
-  // इस यूटिलिटी का उपयोग अतिरिक्त विज़ुअल टॉगलिंग के लिए कर सकते हैं
-}
-
 async function addStudent() {
   const name = document.getElementById('newName').value.trim();
-  if (!name) { alert('नाम डालें!'); return; }
+  if (!name) { showCustomAlert('कृपया Student का नाम डालें!'); return; }
 
   const isFamilyFeeSelected = document.getElementById('radioFamily').checked;
 
@@ -305,18 +323,20 @@ async function addStudent() {
   };
 
   try {
-    await fetch(API, {
+    const response = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    if (!response.ok) throw new Error('सर्वर एरर');
+    
     closeModal('addModal');
     loadStudents();
     ['newName','newIdentity','newFamilyCode','newFee','newJoinDate']
       .forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('radioIndividual').checked = true;
   } catch (err) {
-    alert('Error: ' + err.message);
+    showCustomAlert('Error: ' + err.message);
   }
 }
 
@@ -363,7 +383,6 @@ function openHisabModalForFamily(familyCode) {
   const members = students.filter(s => s.familyCode === familyCode);
   if (members.length === 0) return;
 
-  // फॅमिली के पहले सदस्य की फीस हिस्ट्री से शो करेंगे
   const parentStudent = members[0];
   const names = members.map(m => m.name).join(' • ');
 
@@ -381,7 +400,6 @@ function renderDiaryTable(student, isFamily = false, familyCode = '') {
   const tbody = document.getElementById('hisabTableBody');
   tbody.innerHTML = '';
 
-  // हालिया महीने जो ट्रैक होने चाहिए (पिछले 6 महीने और चालू महीना)
   const visible = getVisibleMonths();
   
   visible.forEach(({ month, year }) => {
@@ -427,13 +445,13 @@ async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
       `${API}/family/${familyCode}/fees` :
       `${API}/${studentId}/fees`;
 
-    await fetch(url, {
+    const response = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    if (!response.ok) throw new Error('अपडेट नहीं हो पाया');
     
-    // रीलोड और रि-रेंडर करें
     const res = await fetch(API);
     students = await res.json();
     renderStudents(students);
@@ -444,7 +462,7 @@ async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
       openHisabModal(studentId);
     }
   } catch (err) {
-    alert('Error: ' + err.message);
+    showCustomAlert('Error: ' + err.message);
   }
 }
 
@@ -462,49 +480,54 @@ async function saveFees() {
       `${API}/family/${window.currentFamilyCode}/fees` :
       `${API}/${currentStudent._id}/fees`;
 
-    await fetch(url, {
+    const response = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    if (!response.ok) throw new Error('अपडेट करने में असमर्थ');
+    
     closeModal('markModal');
     loadStudents();
   } catch (err) {
-    alert('Error: ' + err.message);
+    showCustomAlert('Error: ' + err.message);
   }
 }
 
 function showFamilyOptions(code) {
   const members = students.filter(s => s.familyCode === code);
   const names = members.map(m => m.name).join(', ');
-  if (confirm(`"${code}" family delete करें?\n(${names})\n\nसिर्फ एक member हटाना हो तो Cancel करें और card खोलें`)) {
+  
+  showCustomConfirm(`"${code}" family delete करें?\n(${names})\n\nसिर्फ एक member हटाना हो तो Cancel करें और कार्ड खोलें।`, () => {
     deleteFamily(code);
-  }
+  });
 }
 
 async function deleteFamily(code) {
   try {
-    await fetch(`${API}/family/${code}`, { method: 'DELETE' });
+    const response = await fetch(`${API}/family/${code}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('डिलीट करने में विफल');
     loadStudents();
   } catch (err) {
-    alert('Error: ' + err.message);
+    showCustomAlert('Error: ' + err.message);
   }
 }
 
-async function deleteStudent(id, name) {
-  if (confirm(`"${name}" को हटाएं?`)) {
+function deleteStudent(id, name) {
+  showCustomConfirm(`"${name}" को सूची से हटाएं?`, async () => {
     try {
-      await fetch(`${API}/${id}`, { method: 'DELETE' });
+      const response = await fetch(`${API}/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('हटाने में विफल');
       loadStudents();
     } catch (err) {
-      alert('Error: ' + err.message);
+      showCustomAlert('Error: ' + err.message);
     }
-  }
+  });
 }
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
+// ऑन-लोड स्टूडेंट डेटा फेच करना
 loadStudents();
-

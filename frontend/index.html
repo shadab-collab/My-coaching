@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Shadab Coaching Centre</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -41,51 +41,66 @@
   <div class="modal" id="addModal">
     <div class="modal-box">
       <h2>नया Student जोड़ें</h2>
-      <input type="text" id="newName" placeholder="Student का नाम *" />
-      <input type="text" id="newIdentity" placeholder="पहचान (Family code / Guardian)" />
-      <input type="text" id="newFamilyCode" placeholder="Family Code (AA, KA, MITTHU...)" />
+      <div class="form-group">
+        <input type="text" id="newName" placeholder="Student का नाम *" />
+      </div>
+      <div class="form-group">
+        <input type="text" id="newIdentity" placeholder="पहचान (Family code / Guardian)" />
+      </div>
+      <div class="form-group">
+        <input type="text" id="newFamilyCode" placeholder="Family Code (AA, KA, MITTHU...)" />
+      </div>
       
-      <!-- FEE TYPE OPTIONS (FAMILY vs INDIVIDUAL) -->
-      <div class="fee-type-section" style="margin-bottom: 1rem; border: 1px solid #ddd; padding: 0.8rem; border-radius: 8px;">
-        <p style="font-weight:600; font-size:0.85rem; margin-bottom:0.5rem; color:#1a7a4a">Fee Type चुनें:</p>
-        <div style="display:flex; gap:1.5rem;">
-          <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.9rem; cursor:pointer">
-            <input type="radio" name="feeTypeRadio" id="radioIndividual" value="Individual" checked onchange="toggleFamilyFeeUI()" />
-            Individual Fee (अकेला)
+      <!-- FEE TYPE OPTIONS -->
+      <div class="fee-type-section">
+        <p class="fee-type-title">Fee Type चुनें:</p>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="feeTypeRadio" id="radioIndividual" value="Individual" checked />
+            <span>Individual Fee (अकेला)</span>
           </label>
-          <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.9rem; cursor:pointer">
-            <input type="radio" name="feeTypeRadio" id="radioFamily" value="Family" onchange="toggleFamilyFeeUI()" />
-            Family Fee (परिवार)
+          <label class="radio-label">
+            <input type="radio" name="feeTypeRadio" id="radioFamily" value="Family" />
+            <span>Family Fee (परिवार)</span>
           </label>
         </div>
       </div>
       
-      <input type="number" id="newFee" placeholder="Monthly Fee (₹)" />
-      <select id="newBatch">
-        <option value="">Batch select करें</option>
-        <option value="1-5">Class 1-5</option>
-        <option value="6-8">Class 6-8</option>
-        <option value="9">Class 9</option>
-        <option value="10">Class 10</option>
-        <option value="CBSE">CBSE</option>
-      </select>
-      <select id="newDueDate">
-        <option value="1">1 तारीख</option>
-        <option value="15">15 तारीख</option>
-      </select>
-      <input type="date" id="newJoinDate" />
+      <div class="form-group">
+        <input type="number" id="newFee" placeholder="Monthly Fee (₹)" />
+      </div>
+      <div class="form-group">
+        <select id="newBatch">
+          <option value="">Batch select करें</option>
+          <option value="1-5">Class 1-5</option>
+          <option value="6-8">Class 6-8</option>
+          <option value="9">Class 9</option>
+          <option value="10">Class 10</option>
+          <option value="CBSE">CBSE</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <select id="newDueDate">
+          <option value="1">1 तारीख</option>
+          <option value="15">15 तारीख</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="font-size: 0.8rem; color:#666; display:block; margin-bottom:0.2rem;">Join Date:</label>
+        <input type="date" id="newJoinDate" />
+      </div>
       <div class="modal-btns">
-        <button onclick="addStudent()">Save</button>
-        <button onclick="closeModal('addModal')">Cancel</button>
+        <button class="btn-confirm" onclick="addStudent()">Save</button>
+        <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
       </div>
     </div>
   </div>
   
   <!-- DIARY BASED HISAB LEDGER MODAL -->
   <div class="modal" id="hisabModal">
-    <div class="modal-box" style="max-width: 600px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a7a4a; padding-bottom: 0.5rem; margin-bottom: 1rem;">
-        <h2 id="hisabStudentTitle" style="margin:0;">Nazeeb का हिसाब</h2>
+    <div class="modal-box hisab-box">
+      <div class="hisab-header">
+        <h2 id="hisabStudentTitle">Nazeeb का हिसाब</h2>
         <span id="hisabFeeTypeBadge" class="badge badge-blue">Individual Fee</span>
       </div>
       
@@ -94,8 +109,8 @@
         <table class="diary-table">
           <thead>
             <tr>
-              <th>कब लगा (Due Date)</th>
-              <th>कब दिये (Paid Date)</th>
+              <th>कब लगा (Due)</th>
+              <th>कब दिये (Paid)</th>
               <th>स्टेटस / एक्शन</th>
             </tr>
           </thead>
@@ -106,7 +121,7 @@
       </div>
       
       <div class="modal-btns" style="margin-top: 1.5rem;">
-        <button onclick="closeModal('hisabModal')" style="background:#eee; color:#0f2d1f;">बंद करें</button>
+        <button class="btn-cancel" onclick="closeModal('hisabModal')" style="width: 100%;">बंद करें</button>
       </div>
     </div>
   </div>
@@ -115,18 +130,47 @@
   <div class="modal" id="markModal">
     <div class="modal-box">
       <h2>Fees Mark करें</h2>
-      <p id="markInfo" style="margin-bottom:0.8rem;font-weight:600; color:#1a7a4a"></p>
-      <select id="markStatus">
-        <option value="paid">✅ Paid (पूरा)</option>
-        <option value="partial">⚠️ Partial (आंशिक)</option>
-        <option value="advance">⏭️ Advance</option>
-        <option value="unpaid">❌ Unpaid</option>
-      </select>
-      <input type="number" id="markAmount" placeholder="Amount (₹)" />
-      <input type="text" id="markNote" placeholder="Note (जैसे +200 जमा)" />
+      <p id="markInfo" style="margin-bottom:0.8rem; font-weight:600; color:#1a7a4a"></p>
+      <div class="form-group">
+        <select id="markStatus">
+          <option value="paid">✅ Paid (पूरा)</option>
+          <option value="partial">⚠️ Partial (आंशिक)</option>
+          <option value="advance">⏭️ Advance</option>
+          <option value="unpaid">❌ Unpaid</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input type="number" id="markAmount" placeholder="Amount (₹)" />
+      </div>
+      <div class="form-group">
+        <input type="text" id="markNote" placeholder="Note (जैसे +200 जमा)" />
+      </div>
       <div class="modal-btns">
-        <button onclick="saveFees()">Save</button>
-        <button onclick="closeModal('markModal')">Cancel</button>
+        <button class="btn-confirm" onclick="saveFees()">Save</button>
+        <button class="btn-cancel" onclick="closeModal('markModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- CUSTOM NOTIFICATION MODAL -->
+  <div class="modal" id="customAlertModal">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <h3 style="color: var(--green); margin-bottom: 1rem; font-size: 1.2rem;">सूचना 📢</h3>
+      <p id="customAlertMessage" style="margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.4; color: #555;"></p>
+      <div class="modal-btns">
+        <button class="btn-confirm" onclick="closeModal('customAlertModal')" style="width: 100%;">ठीक है</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- CUSTOM CONFIRMATION MODAL -->
+  <div class="modal" id="customConfirmModal">
+    <div class="modal-box" style="max-width: 400px; text-align: center;">
+      <h3 style="color: var(--red); margin-bottom: 1rem; font-size: 1.2rem;">पुष्टिकरण ⚠️</h3>
+      <p id="customConfirmMessage" style="margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.4; color: #555;"></p>
+      <div class="modal-btns">
+        <button id="customConfirmYesBtn" class="btn-danger-confirm" style="flex:1;">हाँ, हटाएं</button>
+        <button class="btn-cancel" onclick="closeModal('customConfirmModal')" style="flex:1;">रद्द करें</button>
       </div>
     </div>
   </div>
