@@ -16,11 +16,36 @@
     <button class="btn-add" onclick="openAddModal()">+ Student</button>
   </nav>
   
+  <!-- LIVE DASHBOARD (Phase 3 Dashboard & Reports) -->
+  <div class="dashboard-grid">
+    <div class="dash-card card-green">
+      <span class="dash-icon">💰</span>
+      <div class="dash-info">
+        <p class="dash-label">आज का कलेक्शन</p>
+        <h3 id="statTodayCollection">₹0</h3>
+      </div>
+    </div>
+    <div class="dash-card card-blue">
+      <span class="dash-icon">📈</span>
+      <div class="dash-info">
+        <p class="dash-label">इस महीने जमा</p>
+        <h3 id="statMonthCollection">₹0</h3>
+      </div>
+    </div>
+    <div class="dash-card card-red">
+      <span class="dash-icon">⏳</span>
+      <div class="dash-info">
+        <p class="dash-label">कुल बाकी (Dues)</p>
+        <h3 id="statTotalDues">0 छात्र</h3>
+      </div>
+    </div>
+  </div>
+  
   <!-- SEARCH & FILTER -->
   <div class="toolbar">
     <input type="text" id="searchInput" placeholder="🔍 नाम खोजें..." oninput="filterStudents()" />
     <select id="filterDue" onchange="filterStudents()">
-      <option value="all">सभी</option>
+      <option value="all">सभी छात्र</option>
       <option value="due">Due बाकी</option>
       <option value="1">1 तारीख</option>
       <option value="15">15 तारीख</option>
@@ -86,7 +111,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label style="font-size: 0.8rem; color:#666; display:block; margin-bottom:0.2rem;">Join Date:</label>
+        <label style="font-size: 0.8rem; color:#666; display:block; margin-bottom:0.2rem;">Join Date (1 जुलाई 2026 से शुरू करें):</label>
         <input type="date" id="newJoinDate" />
       </div>
       <div class="modal-btns">
@@ -111,11 +136,11 @@
             <tr>
               <th>कब लगा (Due)</th>
               <th>कब दिये (Paid)</th>
-              <th>स्टेटस / एक्शन</th>
+              <th>स्टेटस / रसीद</th>
             </tr>
           </thead>
           <tbody id="hisabTableBody">
-            <!-- यहाँ डायरी का डेटा स्क्रिप्ट द्वारा रेंडर होगा -->
+            <!-- डायरी डेटा -->
           </tbody>
         </table>
       </div>
@@ -148,6 +173,35 @@
       <div class="modal-btns">
         <button class="btn-confirm" onclick="saveFees()">Save</button>
         <button class="btn-cancel" onclick="closeModal('markModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- PROFESSIONAL RECEIPT MODAL (Phase 2 Receipt System) -->
+  <div class="modal" id="receiptModal">
+    <div class="modal-box receipt-box">
+      <div class="receipt-card" id="receiptPrintArea">
+        <div class="receipt-header-branding">
+          <h3>SHADAB COACHING CENTER</h3>
+          <p class="receipt-tagline">उज्जवल भविष्य की ओर पहला कदम</p>
+        </div>
+        <div class="receipt-divider"></div>
+        <div class="receipt-details">
+          <p><strong>रसीद संख्या (Receipt No):</strong> <span id="recNo">0</span></p>
+          <p><strong>दिनांक (Date):</strong> <span id="recDate"></span></p>
+          <p><strong>छात्र का नाम (Name):</strong> <span id="recStudentName"></span></p>
+          <p><strong>बैच (Batch):</strong> <span id="recBatch"></span></p>
+          <p><strong>फीस महीना (Month):</strong> <span id="recMonth"></span></p>
+          <p><strong>जमा राशि (Paid Amount):</strong> <span id="recAmount">₹0</span></p>
+          <p><strong>भुगतान स्थिति (Status):</strong> <span class="badge badge-green">PAID / वसूल</span></p>
+          <p id="recNoteRow"><strong>टिप्पणी (Note):</strong> <span id="recNote"></span></p>
+        </div>
+        <div class="receipt-divider"></div>
+        <p class="receipt-footer">ज्ञान ही शक्ति है। धन्यवाद! 🙏</p>
+      </div>
+      <div class="modal-btns" style="margin-top: 1rem;">
+        <button class="btn-whatsapp" id="btnShareReceiptWA">💬 WhatsApp रसीद</button>
+        <button class="btn-cancel" onclick="closeModal('receiptModal')">बंद करें</button>
       </div>
     </div>
   </div>
