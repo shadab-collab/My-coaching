@@ -64,7 +64,7 @@ async function loadStudents() {
   try {
     const res = await fetch(API);
     students = await res.json();
-    calculateDashboardStats(students); // लाइव स्टेट्स की गणना करें
+    calculateDashboardStats(students);
     renderStudents(students);
   } catch (err) {
     console.error('Error:', err);
@@ -72,28 +72,25 @@ async function loadStudents() {
   }
 }
 
-// लाइव डैशबोर्ड स्टेट्स कैलकुलेशन (Phase 3 Dashboard & Reports)
+// लाइव डैशबोर्ड स्टेट्स कैलकुलेशन
 function calculateDashboardStats(list) {
   let todayCollection = 0;
   let monthCollection = 0;
   let dueCount = 0;
 
   const todayStr = getFormattedTodayDate();
-  const visible = getVisibleMonths();
 
   list.forEach(student => {
-    // ड्यू स्टूडेंट काउंट करने के लिए
     if (hasDue(student)) {
       dueCount++;
     }
 
-    // फीस कलेक्शन काउंट करने के लिए
     student.fees?.forEach(fee => {
-      // आज का कलेक्शन
+      // आज का कुल कलेक्शन
       if (fee.paidOn === todayStr && (fee.status === 'paid' || fee.status === 'partial' || fee.status === 'advance')) {
         todayCollection += (fee.paidAmount || 0);
       }
-      // इस महीने का जमा
+      // इस महीने का कुल जमा
       if (fee.month === CUR_MONTH && fee.year === CUR_YEAR && (fee.status === 'paid' || fee.status === 'partial' || fee.status === 'advance')) {
         monthCollection += (fee.paidAmount || 0);
       }
@@ -147,7 +144,9 @@ function renderStudents(list) {
     const isDue = members.some(s => hasDue(s));
     const hasVerify = members.some(s => s.verify);
     const headerClass = hasVerify ? 'verify' : isDue ? 'due' : '';
-    const fee = members[0].monthlyFee || 0;
+    
+    // पूरे परिवार की कुल मासिक फीस जोड़ें (जैसे: 300 + 500 = 800)
+    const totalFamilyMonthlyFee = members.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
 
     const namesOnly = members.map(m => m.name).join(' • ');
     const commonIdentity = members.find(m => m.identity && m.identity.trim() !== '')?.identity || '';
@@ -155,7 +154,7 @@ function renderStudents(list) {
     const familyFeeType = members[0].isFamilyFee ? "Family Fee" : "Individual Fee";
 
     // व्हाट्सएप रिमाइंडर लिंक जेनरेट करना
-    const reminderText = `अभिभावक कृपया ध्यान देंगे: SHADAB COACHING CENTER की ओर से सूचित किया जाता है कि छात्र ${namesOnly} (${code}) की ${CUR_MONTH} ${CUR_YEAR} महीने की फीस ₹${fee} बाकी है। कृपया शीघ्र अति शीघ्र भुगतान करें।`;
+    const reminderText = `अभिभावक कृपया ध्यान देंगे: SHADAB COACHING CENTER की ओर से सूचित किया जाता है कि छात्र ${namesOnly} की ${CUR_MONTH} ${CUR_YEAR} महीने की फीस ₹${totalFamilyMonthlyFee} बाकी है। कृपया शीघ्र अति शीघ्र भुगतान करें।`;
     const waReminderUrl = `https://wa.me/?text=${encodeURIComponent(reminderText)}`;
 
     html += `
@@ -170,7 +169,7 @@ function renderStudents(list) {
             Due: ${members[0].dueDate} तारीख • 
             Type: <strong>${familyFeeType}</strong> •
             ${members[0].batch ? 'Batch ' + members[0].batch + ' • ' : ''}
-            ₹${fee}/month
+            ₹${totalFamilyMonthlyFee}/month
           </div>
         </div>
         <div class="student-badges">
@@ -178,7 +177,7 @@ function renderStudents(list) {
           <button onclick="event.stopPropagation();openHisabModalForFamily('${code}')"
             style="background:#1a7a4a;color:white;border:none;border-radius:4px;font-size:0.75rem;font-weight:700;cursor:pointer;padding:0.3rem 0.6rem;margin-right:0.3rem;min-height:32px">📖 हिसाब</button>
           
-          <!-- Phase 2 Smart Reminder Whatsapp Icon -->
+          <!-- Smart Reminder Whatsapp Icon -->
           ${isDue ? `<a href="${waReminderUrl}" onclick="event.stopPropagation();" target="_blank" style="background:#25d366; color:white; border-radius:4px; font-size:0.75rem; font-weight:700; padding:0.35rem 0.6rem; margin-right:0.3rem; text-decoration:none; display:inline-block; text-align:center;">💬 Remind</a>` : ''}
 
           <button onclick="event.stopPropagation();showFamilyOptions('${code}')"
@@ -212,7 +211,6 @@ function renderStudents(list) {
     const nameDisplay = `${student.name}${student.identity ? ' (' + student.identity + ')' : ''}`;
     const studentFeeType = student.isFamilyFee ? "Family Fee" : "Individual Fee";
 
-    // व्हाट्सएप रिमाइंडर लिंक जेनरेट करना
     const reminderText = `अभिभावक कृपया ध्यान देंगे: SHADAB COACHING CENTER की ओर से सूचित किया जाता है कि छात्र ${student.name} की ${CUR_MONTH} ${CUR_YEAR} महीने की फीस ₹${student.monthlyFee} बाकी है। कृपया शीघ्र अति शीघ्र भुगतान करें।`;
     const waReminderUrl = `https://wa.me/?text=${encodeURIComponent(reminderText)}`;
 
@@ -235,7 +233,7 @@ function renderStudents(list) {
           <button onclick="event.stopPropagation();openHisabModal('${student._id}')"
             style="background:#1a7a4a;color:white;border:none;border-radius:4px;font-size:0.75rem;font-weight:700;cursor:pointer;padding:0.3rem 0.6rem;margin-right:0.3rem;min-height:32px">📖 हिसाब</button>
           
-          <!-- Phase 2 Smart Reminder Whatsapp Icon -->
+          <!-- Smart Reminder Whatsapp Icon -->
           ${isDue ? `<a href="${waReminderUrl}" onclick="event.stopPropagation();" target="_blank" style="background:#25d366; color:white; border-radius:4px; font-size:0.75rem; font-weight:700; padding:0.35rem 0.6rem; margin-right:0.3rem; text-decoration:none; display:inline-block; text-align:center;">💬 Remind</a>` : ''}
 
           <button onclick="event.stopPropagation();deleteStudent('${student._id}','${student.name}')"
@@ -373,6 +371,7 @@ async function addStudent() {
   }
 }
 
+// नया मार्क फीस पॉपअप लॉजिक (स्मार्ट डिफ़ॉल्ट वैल्यूज के साथ)
 function openMarkModal(studentId, month, year, isFamily, familyCode) {
   currentStudent = students.find(s => s._id === studentId);
   currentMonth = month || CUR_MONTH;
@@ -385,7 +384,26 @@ function openMarkModal(studentId, month, year, isFamily, familyCode) {
 
   document.getElementById('markInfo').textContent = label;
   document.getElementById('markStatus').value = existing?.status || 'paid';
-  document.getElementById('markAmount').value = existing?.paidAmount || currentStudent.monthlyFee || '';
+  
+  if (isFamily && familyCode) {
+    // अगर फैमिली की फीस मार्क कर रहे हैं, तो डिफ़ॉल्ट में पूरे परिवार की कुल मंथली फीस दिखाएँ (जैसे: 300+500 = 800)
+    const familyMembers = students.filter(s => s.familyCode === familyCode);
+    const totalFamilyFee = familyMembers.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
+    
+    let existingSum = 0;
+    let hasExisting = false;
+    familyMembers.forEach(m => {
+      const f = m.fees?.find(x => x.month === currentMonth && x.year === currentYear);
+      if (f) {
+        existingSum += (f.paidAmount || 0);
+        hasExisting = true;
+      }
+    });
+    document.getElementById('markAmount').value = hasExisting ? existingSum : totalFamilyFee;
+  } else {
+    document.getElementById('markAmount').value = existing?.paidAmount || currentStudent.monthlyFee || '';
+  }
+
   document.getElementById('markNote').value = existing?.note || '';
   document.getElementById('markModal').classList.add('open');
 }
@@ -429,17 +447,36 @@ function renderDiaryTable(student, isFamily = false, familyCode = '') {
     const fee = student.fees?.find(f => f.month === month && f.year === year);
     const status = fee ? fee.status : 'unpaid';
     const paidOn = fee ? fee.paidOn : 'बाकी';
-    const amount = fee ? fee.paidAmount : (student.monthlyFee || 0);
+    
+    // अगर फ़ैमिली रिकॉर्ड है, तो रेंडर करते समय परिवार के सभी सदस्यों का टोटल जोड़कर दिखाएँ
+    let displayAmount = student.monthlyFee || 0;
+    if (isFamily && familyCode) {
+      const familyMembers = students.filter(s => s.familyCode === familyCode);
+      const totalFamilyExpected = familyMembers.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
+      
+      let familySum = 0;
+      let hasRecord = false;
+      familyMembers.forEach(m => {
+        const f = m.fees?.find(x => x.month === month && x.year === year);
+        if (f) {
+          familySum += (f.paidAmount || 0);
+          hasRecord = true;
+        }
+      });
+      displayAmount = hasRecord ? familySum : totalFamilyExpected;
+    } else if (fee) {
+      displayAmount = fee.paidAmount;
+    }
 
     let statusHtml = '';
     if (status === 'paid') {
-      statusHtml = `<span style="color:#1a7a4a; font-weight:bold; margin-right:0.4rem;">✅ Paid (₹${amount})</span>
+      statusHtml = `<span style="color:#1a7a4a; font-weight:bold; margin-right:0.4rem;">✅ Paid (₹${displayAmount})</span>
                     <button class="btn-rec-small" onclick="generateInvoice('${student._id}', '${month}', ${year}, ${isFamily}, '${familyCode}')">🧾 रसीद</button>`;
     } else if (status === 'partial') {
-      statusHtml = `<span style="color:#e6a817; font-weight:bold; margin-right:0.4rem;">⚠️ Partial (₹${amount})</span>
+      statusHtml = `<span style="color:#e6a817; font-weight:bold; margin-right:0.4rem;">⚠️ Partial (₹${displayAmount})</span>
                     <button class="btn-rec-small" onclick="generateInvoice('${student._id}', '${month}', ${year}, ${isFamily}, '${familyCode}')">🧾 रसीद</button>`;
     } else if (status === 'advance') {
-      statusHtml = `<span style="color:#0c6075; font-weight:bold; margin-right:0.4rem;">⏭️ Advance (₹${amount})</span>
+      statusHtml = `<span style="color:#0c6075; font-weight:bold; margin-right:0.4rem;">⏭️ Advance (₹${displayAmount})</span>
                     <button class="btn-rec-small" onclick="generateInvoice('${student._id}', '${month}', ${year}, ${isFamily}, '${familyCode}')">🧾 रसीद</button>`;
     } else {
       statusHtml = `<button onclick="quickPayFromHisab('${student._id}', '${month}', ${year}, ${isFamily}, '${familyCode}')" style="background:#dc3545; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;">⏳ बाकी (Mark Paid)</button>`;
@@ -459,7 +496,7 @@ function renderDiaryTable(student, isFamily = false, familyCode = '') {
   }
 }
 
-// ऑटो रसीद जेनरेशन (Phase 2 Receipt System with Auto-Increment)
+// रसीद जेनरेशन (Proportional Ratio Support के साथ)
 function generateInvoice(studentId, month, year, isFamily, familyCode) {
   const student = students.find(s => s._id === studentId);
   if (!student) return;
@@ -467,11 +504,10 @@ function generateInvoice(studentId, month, year, isFamily, familyCode) {
   const fee = student.fees?.find(f => f.month === month && f.year === year);
   if (!fee) return;
 
-  // रसीद नंबर ऑटो इंक्रीमेंट के लिए लोकल स्टोरेज का उपयोग
+  // रसीद नंबर ऑटो इंक्रीमेंट
   let lastRecNo = localStorage.getItem('lastReceiptNumber') || '1000';
   let nextRecNo = parseInt(lastRecNo) + 1;
   
-  // अगर इस भुगतान के लिए पहले से कोई रसीद जनरेट नहीं की गई है, तो नया नंबर असाइन करें
   const storageKey = `rec_${studentId}_${month}_${year}`;
   let currentRecNo = localStorage.getItem(storageKey);
   if (!currentRecNo) {
@@ -480,12 +516,26 @@ function generateInvoice(studentId, month, year, isFamily, familyCode) {
     localStorage.setItem(storageKey, nextRecNo);
   }
 
+  // यदि फ़ैमिली रसीद है, तो सभी सदस्यों की जमा राशि का योग रसीद पर प्रदर्शित करें
+  let displayAmount = fee.paidAmount;
+  if (isFamily && familyCode) {
+    const familyMembers = students.filter(s => s.familyCode === familyCode);
+    let familySum = 0;
+    familyMembers.forEach(m => {
+      const f = m.fees?.find(x => x.month === month && x.year === year);
+      if (f && (f.status === 'paid' || f.status === 'partial' || f.status === 'advance')) {
+        familySum += (f.paidAmount || 0);
+      }
+    });
+    displayAmount = familySum;
+  }
+
   document.getElementById('recNo').innerText = currentRecNo;
   document.getElementById('recDate').innerText = fee.paidOn || getFormattedTodayDate();
   document.getElementById('recStudentName').innerText = isFamily ? `${familyCode} परिवार (${student.name})` : student.name;
   document.getElementById('recBatch').innerText = student.batch || 'Class Room';
   document.getElementById('recMonth').innerText = `${month} ${year}`;
-  document.getElementById('recAmount').innerText = `₹${fee.paidAmount}`;
+  document.getElementById('recAmount').innerText = `₹${displayAmount}`;
   
   if (fee.note) {
     document.getElementById('recNoteRow').style.display = 'block';
@@ -494,8 +544,7 @@ function generateInvoice(studentId, month, year, isFamily, familyCode) {
     document.getElementById('recNoteRow').style.display = 'none';
   }
 
-  // रसीद का पेशेवर व्हाट्सएप संदेश तैयार करना
-  const waReceiptText = `*SHADAB COACHING CENTER*\n-------------------------------\n*फीस रसीद (Fee Receipt)*\n-------------------------------\n*रसीद संख्या:* #${currentRecNo}\n*दिनांक:* ${fee.paidOn || getFormattedTodayDate()}\n*छात्र का नाम:* ${student.name}\n*बैच:* ${student.batch || 'N/A'}\n*फीस महीना:* ${month} ${year}\n*जमा राशि:* ₹${fee.paidAmount}\n*स्थिति:* PAID (वसूल)\n-------------------------------\n_उज्जवल भविष्य की ओर पहला कदम। धन्यवाद!_`;
+  const waReceiptText = `*SHADAB COACHING CENTER*\n-------------------------------\n*फीस रसीद (Fee Receipt)*\n-------------------------------\n*रसीद संख्या:* #${currentRecNo}\n*दिनांक:* ${fee.paidOn || getFormattedTodayDate()}\n*छात्र का नाम:* ${isFamily ? `${familyCode} परिवार (${student.name})` : student.name}\n*बैच:* ${student.batch || 'N/A'}\n*फीस महीना:* ${month} ${year}\n*जमा राशि:* ₹${displayAmount}\n*स्थिति:* PAID (वसूल)\n-------------------------------\n_उज्जवल भविष्य की ओर पहला कदम। धन्यवाद!_`;
   
   const shareBtn = document.getElementById('btnShareReceiptWA');
   shareBtn.onclick = () => {
@@ -507,10 +556,22 @@ function generateInvoice(studentId, month, year, isFamily, familyCode) {
 
 async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
   const student = students.find(s => s._id === studentId);
-  const data = { month, year, status: 'paid', paidAmount: student ? student.monthlyFee : 0, note: 'हिसाब से डायरेक्ट जमा' };
+  
+  // डिफ़ॉल्ट में पूरे परिवार की मंथली फीस योग निकालें
+  let paymentAmount = student ? student.monthlyFee : 0;
+  if (isFamily && familyCode) {
+    const familyMembers = students.filter(s => s.familyCode === familyCode);
+    paymentAmount = familyMembers.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
+  }
+
+  const data = { month, year, status: 'paid', paidAmount: paymentAmount, note: 'हिसाब से डायरेक्ट जमा' };
   try {
     const url = isFamily ? `${API}/family/${familyCode}/fees` : `${API}/${studentId}/fees`;
-    const response = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
     if (!response.ok) throw new Error('अपडेट नहीं हो पाया');
     
     // डेटा रीलोड करें
@@ -521,7 +582,7 @@ async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
     
     if (isFamily) openHisabModalForFamily(familyCode); else openHisabModal(studentId);
     
-    // भुगतान तुरंत होने के बाद रसीद दिखाएँ
+    // भुगतान के तुरंत बाद रसीद दिखाएँ
     setTimeout(() => {
       generateInvoice(studentId, month, year, isFamily, familyCode);
     }, 400);

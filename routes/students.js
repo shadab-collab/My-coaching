@@ -77,20 +77,49 @@ router.put('/:id/fees', async (req, res) => {
   }
 });
 
+// अनुपातिक रेशियो बँटवारा लॉजिक (Proportional Ratio Split)
 router.put('/family/:code/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
     const students = await Student.find({ familyCode: req.params.code, active: true });
     const paidOnDate = (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
 
-    for (let s of students) {
-      const idx = s.fees.findIndex(f => f.month === month && f.year === year);
-      if (idx > -1) {
-        s.fees[idx] = { month, year, status, paidAmount, note, paidOn: paidOnDate };
-      } else {
-        s.fees.push({ month, year, status, paidAmount, note, paidOn: paidOnDate });
+    const totalMembers = students.length;
+    if (totalMembers > 0) {
+      const isPaying = (status === 'paid' || status === 'advance' || status === 'partial');
+      const totalToDistribute = isPaying ? paidAmount : 0;
+
+      // परिवार के सभी बच्चों की फीस का कुल योग निकालें
+      const totalExpectedFee = students.reduce((sum, s) => sum + (s.monthlyFee || 0), 0);
+
+      let distributedSum = 0;
+      for (let i = 0; i < totalMembers; i++) {
+        const s = students[i];
+        let memberShare = 0;
+
+        if (isPaying) {
+          if (i === totalMembers - 1) {
+            // आखरी बच्चे को बचा हुआ हिस्सा दें ताकि राउंडिंग में 1 रुपया भी इधर-उधर न हो
+            memberShare = totalToDistribute - distributedSum;
+          } else if (totalExpectedFee > 0) {
+            // बच्चे की व्यक्तिगत मासिक फीस के अनुपात में कुल जमा राशि को बाँटें
+            memberShare = Math.round(totalToDistribute * ((s.monthlyFee || 0) / totalExpectedFee));
+            distributedSum += memberShare;
+          } else {
+            // अगर किसी की फीस सेट नहीं है तो बराबर बाँटें
+            memberShare = Math.round(totalToDistribute / totalMembers);
+            distributedSum += memberShare;
+          }
+        }
+
+        const idx = s.fees.findIndex(f => f.month === month && f.year === year);
+        if (idx > -1) {
+          s.fees[idx] = { month, year, status, paidAmount: memberShare, note, paidOn: paidOnDate };
+        } else {
+          s.fees.push({ month, year, status, paidAmount: memberShare, note, paidOn: paidOnDate });
+        }
+        await s.save();
       }
-      await s.save();
     }
     res.json({ message: 'done' });
   } catch (err) {
