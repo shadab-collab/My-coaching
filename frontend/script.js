@@ -11,6 +11,29 @@ let currentMonth = null;
 let currentYear = null;
 let isFamilyMark = false;
 
+// 1 जुलाई 2026 से क्लीन शुरुआत के लिए नया मंथ-फ़िल्टर फंक्शन
+function isMonthBeforeJoin(monthName, year, joinDateStr) {
+  const monthIdx = MONTHS.indexOf(monthName);
+  
+  // डिफ़ॉल्ट रूप से हम 1 जुलाई 2026 (JL) से शुरू कर रहे हैं
+  let startYear = 2026;
+  let startMonthIdx = 6; // 'JL' का इंडेक्स 6 होता है
+
+  // अगर स्टूडेंट की कोई खास जॉइनिंग डेट डाली गई है, तो उसका पालन करें
+  if (joinDateStr) {
+    const jd = new Date(joinDateStr);
+    if (!isNaN(jd.getTime())) {
+      startYear = jd.getFullYear();
+      startMonthIdx = jd.getMonth();
+    }
+  }
+
+  if (year < startYear) return true;
+  if (year > startYear) return false;
+  return monthIdx < startMonthIdx;
+}
+
+// कस्टम पॉपअप्स
 function showCustomAlert(msg) {
   document.getElementById('customAlertMessage').innerText = msg;
   document.getElementById('customAlertModal').classList.add('open');
@@ -77,7 +100,7 @@ function renderStudents(list) {
 
   let html = '';
 
-  // 1. फ़ैमिली ग्रुप्स की रेंडरिंग (सुधरा और सुव्यवस्थित फ़ॉर्मेट)
+  // 1. फ़ैमिली ग्रुप्स की रेंडरिंग (कोड शुरू में एक बार, पहचान अंत में ब्रैकेट में)
   Object.keys(groups).sort().forEach(code => {
     const members = groups[code];
     const isDue = members.some(s => hasDue(s));
@@ -85,14 +108,9 @@ function renderStudents(list) {
     const headerClass = hasVerify ? 'verify' : isDue ? 'due' : '';
     const fee = members[0].monthlyFee || 0;
 
-    // यहाँ केवल साफ़ नाम जुड़ेंगे (जैसे: AASHKA • SAMYA • ZISHAN)
     const namesOnly = members.map(m => m.name).join(' • ');
-    
-    // पहचान (Identity/Guardian Name) जो अंत में केवल एक बार ब्रैकेट में आएगी
     const commonIdentity = members.find(m => m.identity && m.identity.trim() !== '')?.identity || '';
-    
-    // अंतिम रूप: शुरू में कोड, बीच में साफ़ नाम, अंत में पहचान
-    const finalCardTitle = `${namesOnly}${commonIdentity ? ' (' + commonIdentity + ')' : ''}`;
+    const nameDisplay = `${namesOnly}${commonIdentity ? ' (' + commonIdentity + ')' : ''}`;
 
     const familyFeeType = members[0].isFamilyFee ? "Family Fee" : "Individual Fee";
 
@@ -101,7 +119,7 @@ function renderStudents(list) {
       <div class="student-header ${headerClass}" onclick="toggleFees('grp-${code}')">
         <div>
           <div class="student-name">
-            <span class="family-tag">${code}</span> ${finalCardTitle}
+            <span class="family-tag">${code}</span> ${nameDisplay}
             ${hasVerify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
           <div class="student-meta">
@@ -185,6 +203,10 @@ function renderStudents(list) {
 function renderMonthBtns(student, id, isFamily) {
   const visible = getVisibleMonths();
   return visible.map(({ month, year }) => {
+    // अगर महीना जॉइनिंग/जुलाई 2026 से पहले का है, तो बटन न दिखाएं
+    if (isMonthBeforeJoin(month, year, student.joinDate)) {
+      return '';
+    }
     const fee = student.fees?.find(f => f.month === month && f.year === year);
     const status = fee ? fee.status : 'unpaid';
     const cls = `month-${status}`;
@@ -201,7 +223,13 @@ function renderMonthBtns(student, id, isFamily) {
 function renderArchiveBtns(student, id, isFamily) {
   const visible = getVisibleMonths();
   const visibleKeys = visible.map(v => v.month + v.year);
-  const archiveFees = (student.fees || []).filter(f => !visibleKeys.includes(f.month + f.year));
+  
+  // केवल जॉइनिंग के बाद वाले आर्काइव महीनों को ही फ़िल्टर करना
+  const archiveFees = (student.fees || []).filter(f => {
+    const isVisible = visibleKeys.includes(f.month + f.year);
+    const isBeforeJoin = isMonthBeforeJoin(f.month, f.year, student.joinDate);
+    return !isVisible && !isBeforeJoin;
+  });
 
   if (archiveFees.length === 0) {
     return '<span style="font-size:0.75rem;color:#999;padding:0.2rem">कोई पुराना record नहीं</span>';
@@ -231,6 +259,10 @@ function toggleFees(id) {
 }
 
 function hasDue(student) {
+  // अगर करंट महीना जॉइनिंग से पहले का है, तो कोई ड्यू (बकाया) नहीं है
+  if (isMonthBeforeJoin(CUR_MONTH, CUR_YEAR, student.joinDate)) {
+    return false;
+  }
   const fee = student.fees?.find(f => f.month === CUR_MONTH && f.year === CUR_YEAR);
   return !fee || fee.status === 'unpaid' || fee.status === 'partial';
 }
@@ -335,7 +367,13 @@ function renderDiaryTable(student, isFamily = false, familyCode = '') {
   tbody.innerHTML = '';
   const visible = getVisibleMonths();
   
+  let rowsAdded = 0;
   visible.forEach(({ month, year }) => {
+    // अगर महीना जॉइनिंग/जुलाई 2026 से पहले का है, तो डायरी से बाहर रखें
+    if (isMonthBeforeJoin(month, year, student.joinDate)) {
+      return;
+    }
+    rowsAdded++;
     const fee = student.fees?.find(f => f.month === month && f.year === year);
     const status = fee ? fee.status : 'unpaid';
     const paidOn = fee ? fee.paidOn : 'बाकी';
@@ -360,6 +398,10 @@ function renderDiaryTable(student, isFamily = false, familyCode = '') {
     `;
     tbody.appendChild(tr);
   });
+
+  if (rowsAdded === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#999;">जुलाई 2026 से हिसाब शुरू होगा</td></tr>`;
+  }
 }
 
 async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
