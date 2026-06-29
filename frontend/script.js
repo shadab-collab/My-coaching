@@ -10,7 +10,6 @@ let currentMonth = null;
 let currentYear = null;
 let isFamilyMark = false;
 
-// ── 7 months window (6 पीछे + current + 1 आगे) ──
 function getVisibleMonths() {
   const visible = [];
   for (let i = -6; i <= 1; i++) {
@@ -53,7 +52,6 @@ function renderStudents(list) {
     }
   });
 
-  // Alphabetical sort
   Object.keys(groups).forEach(code => {
     groups[code].sort((a, b) => a.name.localeCompare(b.name));
   });
@@ -61,7 +59,6 @@ function renderStudents(list) {
 
   let html = '';
 
-  // Family groups - alphabetical by code
   Object.keys(groups).sort().forEach(code => {
     const members = groups[code];
     const isDue = members.some(s => hasDue(s));
@@ -69,7 +66,6 @@ function renderStudents(list) {
     const headerClass = hasVerify ? 'verify' : isDue ? 'due' : '';
     const fee = members[0].monthlyFee || 0;
 
-    // नाम format: CODE NAME1 • CODE NAME2
     const nameDisplay = members.map(m =>
       `${code} ${m.name}${m.identity ? ' ' + m.identity : ''}`
     ).join(' • ');
@@ -100,15 +96,15 @@ function renderStudents(list) {
         </div>
       </div>
       <div class="fees-row" id="fees-grp-${code}" style="display:none">
-        ${renderMonthBtns(members[0], code, true)}
         <button onclick="toggleArchive('arch-${code}')"
-          style="background:#eee;border:none;border-radius:4px;
-                 padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer;
-                 margin-top:0.3rem">📁 पुराना</button>
+          style="background:#e8f0fe;border:1px solid #aac;border-radius:4px;
+                 padding:0.2rem 0.6rem;font-size:0.7rem;cursor:pointer">
+          📁 पुराना</button>
         <div id="arch-${code}" style="display:none;width:100%;
-             margin-top:0.3rem;flex-wrap:wrap;gap:0.3rem">
+             flex-wrap:wrap;gap:0.3rem;margin-bottom:0.3rem">
           ${renderArchiveBtns(members[0], code, true)}
         </div>
+        ${renderMonthBtns(members[0], code, true)}
         <div style="width:100%;margin-top:0.5rem;font-size:0.75rem;
                     color:#666;display:flex;flex-wrap:wrap;gap:0.5rem">
           ${members.map(m => `
@@ -131,7 +127,6 @@ function renderStudents(list) {
     </div>`;
   });
 
-  // Solo students - alphabetical
   solo.forEach(student => {
     const isDue = hasDue(student);
     const headerClass = student.verify ? 'verify' : isDue ? 'due' : '';
@@ -163,15 +158,15 @@ function renderStudents(list) {
         </div>
       </div>
       <div class="fees-row" id="fees-${student._id}" style="display:none">
-        ${renderMonthBtns(student, student._id, false)}
         <button onclick="toggleArchive('arch-${student._id}')"
-          style="background:#eee;border:none;border-radius:4px;
-                 padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer;
-                 margin-top:0.3rem">📁 पुराना</button>
+          style="background:#e8f0fe;border:1px solid #aac;border-radius:4px;
+                 padding:0.2rem 0.6rem;font-size:0.7rem;cursor:pointer">
+          📁 पुराना</button>
         <div id="arch-${student._id}" style="display:none;width:100%;
-             margin-top:0.3rem;flex-wrap:wrap;gap:0.3rem">
+             flex-wrap:wrap;gap:0.3rem;margin-bottom:0.3rem">
           ${renderArchiveBtns(student, student._id, false)}
         </div>
+        ${renderMonthBtns(student, student._id, false)}
       </div>
     </div>`;
   });
@@ -179,7 +174,6 @@ function renderStudents(list) {
   container.innerHTML = html;
 }
 
-// ── VISIBLE MONTHS (6 पीछे + current + 1 आगे) ──
 function renderMonthBtns(student, id, isFamily) {
   const visible = getVisibleMonths();
   return visible.map(({ month, year }) => {
@@ -196,7 +190,6 @@ function renderMonthBtns(student, id, isFamily) {
   }).join('');
 }
 
-// ── ARCHIVE MONTHS ──
 function renderArchiveBtns(student, id, isFamily) {
   const visible = getVisibleMonths();
   const visibleKeys = visible.map(v => v.month + v.year);
@@ -206,7 +199,7 @@ function renderArchiveBtns(student, id, isFamily) {
   );
 
   if (archiveFees.length === 0) {
-    return '<span style="font-size:0.75rem;color:#999">कोई पुराना record नहीं</span>';
+    return '<span style="font-size:0.75rem;color:#999;padding:0.2rem">कोई पुराना record नहीं</span>';
   }
 
   return archiveFees.map(f => {
@@ -242,7 +235,6 @@ function hasDue(student) {
   return !fee || fee.status === 'unpaid' || fee.status === 'partial';
 }
 
-// ── FILTER ──
 function filterStudents() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const filter = document.getElementById('filterDue').value;
@@ -265,7 +257,6 @@ function filterStudents() {
   renderStudents(filtered);
 }
 
-// ── ADD STUDENT ──
 function openAddModal() {
   document.getElementById('addModal').classList.add('open');
 }
@@ -301,7 +292,6 @@ async function addStudent() {
   }
 }
 
-// ── MARK FEES ──
 function openMarkModal(studentId, month, year, isFamily, familyCode) {
   currentStudent = students.find(s => s._id === studentId);
   currentMonth = month || CUR_MONTH;
@@ -352,7 +342,6 @@ async function saveFees() {
   }
 }
 
-// ── DELETE ──
 function showFamilyOptions(code) {
   const members = students.filter(s => s.familyCode === code);
   const names = members.map(m => m.name).join(', ');
@@ -381,10 +370,8 @@ async function deleteStudent(id, name) {
   }
 }
 
-// ── MODAL ──
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-// ── INIT ──
 loadStudents();
