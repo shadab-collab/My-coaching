@@ -1,4 +1,4 @@
-```javascript
+javascript
 const API = '/api/students';
 const MONTHS = ['JN','FB','MR','AP','MY','JU','JL','AG','SP','OC','NV','DC'];
 const CUR_YEAR = new Date().getFullYear();
@@ -508,4 +508,3 @@ function closeModal(id) {
 
 loadStudents();
 
-```
