@@ -1,3 +1,4 @@
+```css
 * {
   margin: 0;
   padding: 0;
@@ -145,6 +146,32 @@ nav {
 .month-partial { background: #fff3cd; color: #856404; }
 .month-advance { background: #d1ecf1; color: #0c6075; }
 
+/* DIARY TABLE STYLING */
+.diary-table-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+.diary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.diary-table th, .diary-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+.diary-table th {
+  background-color: #f5f9f6;
+  color: #1a7a4a;
+  font-weight: bold;
+}
+.diary-table tr:last-child td {
+  border-bottom: none;
+}
+
 /* MODAL */
 .modal {
   display: none;
@@ -234,3 +261,5 @@ nav {
   font-weight: 700;
   margin-right: 0.3rem;
 }
+
+```

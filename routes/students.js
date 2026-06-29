@@ -3,6 +3,16 @@ const router = express.Router();
 const Student = require('../models/student');
 const Family = require('../models/family');
 
+// आज की तारीख को "DD MMM YYYY" फ़ॉर्मेट में बदलने का फंक्शन (e.g. 29 Jun 2026)
+function getFormattedTodayDate() {
+  const d = new Date();
+  const day = d.getDate();
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
 router.get('/', async (req, res) => {
   try {
     const students = await Student.find({ active: true }).sort({ name: 1 });
@@ -47,15 +57,20 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// इंडिविजुअल फीस मार्क करने पर "कब दिये" दर्ज करना
 router.put('/:id/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
     const student = await Student.findById(req.params.id);
     const idx = student.fees.findIndex(f => f.month === month && f.year === year);
+    
+    // अगर स्टेटस paid या advance है तो आज की तारीख, वर्ना 'बाकी'
+    const paidOnDate = (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
+
     if (idx > -1) {
-      student.fees[idx] = { month, year, status, paidAmount, note, paidOn: new Date() };
+      student.fees[idx] = { month, year, status, paidAmount, note, paidOn: paidOnDate };
     } else {
-      student.fees.push({ month, year, status, paidAmount, note, paidOn: new Date() });
+      student.fees.push({ month, year, status, paidAmount, note, paidOn: paidOnDate });
     }
     await student.save();
     res.json(student);
@@ -64,16 +79,19 @@ router.put('/:id/fees', async (req, res) => {
   }
 });
 
+// पूरी फैमिली की फीस एक साथ मार्क करने पर "कब दिये" दर्ज करना
 router.put('/family/:code/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
     const students = await Student.find({ familyCode: req.params.code, active: true });
+    const paidOnDate = (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
+
     for (let s of students) {
       const idx = s.fees.findIndex(f => f.month === month && f.year === year);
       if (idx > -1) {
-        s.fees[idx] = { month, year, status, paidAmount, note, paidOn: new Date() };
+        s.fees[idx] = { month, year, status, paidAmount, note, paidOn: paidOnDate };
       } else {
-        s.fees.push({ month, year, status, paidAmount, note, paidOn: new Date() });
+        s.fees.push({ month, year, status, paidAmount, note, paidOn: paidOnDate });
       }
       await s.save();
     }

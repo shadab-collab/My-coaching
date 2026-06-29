@@ -1,3 +1,4 @@
+```javascript
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
@@ -21,7 +22,7 @@ const studentSchema = new mongoose.Schema({
       default: 'unpaid'
     },
     paidAmount: { type: Number, default: 0 },
-    paidOn: { type: Date },
+    paidOn: { type: String, default: 'बाकी' }, // "कब दिये" - जैसे "09 Jan 2026" या "बाकी"
     note: { type: String }
   }],
   joinDate: { type: Date },
@@ -30,3 +31,5 @@ const studentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Student', studentSchema);
+
+```

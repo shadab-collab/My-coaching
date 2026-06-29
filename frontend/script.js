@@ -1,3 +1,4 @@
+```javascript
 const API = '/api/students';
 const MONTHS = ['JN','FB','MR','AP','MY','JU','JL','AG','SP','OC','NV','DC'];
 const CUR_YEAR = new Date().getFullYear();
@@ -70,16 +71,20 @@ function renderStudents(list) {
       `${code} ${m.name}${m.identity ? ' ' + m.identity : ''}`
     ).join(' • ');
 
+    const familyFeeType = members[0].isFamilyFee ? "Family Fee" : "Individual Fee";
+
     html += `
     <div class="student-card">
       <div class="student-header ${headerClass}"
            onclick="toggleFees('grp-${code}')">
         <div>
-          <div class="student-name">${nameDisplay}
+          <div class="student-name">
+            <span class="family-tag">${code}</span> ${nameDisplay}
             ${hasVerify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
           <div class="student-meta">
-            Due: ${members[0].dueDate} तारीख •
+            Due: ${members[0].dueDate} तारीख • 
+            Type: <strong>${familyFeeType}</strong> •
             ${members[0].batch ? 'Batch ' + members[0].batch + ' • ' : ''}
             ₹${fee}/month
           </div>
@@ -87,10 +92,15 @@ function renderStudents(list) {
         <div class="student-badges">
           ${isDue ? '<span class="badge badge-red">Due</span>' :
                     '<span class="badge badge-green">Clear</span>'}
+          <button onclick="event.stopPropagation();openHisabModalForFamily('${code}')"
+            style="background:#1a7a4a;color:white;border:none;
+                   border-radius:4px;font-size:0.75rem;font-weight:700;
+                   cursor:pointer;padding:0.3rem 0.6rem;margin-right:0.3rem;
+                   min-height:32px">📖 हिसाब</button>
           <button onclick="event.stopPropagation();showFamilyOptions('${code}')"
             style="background:#dc3545;color:white;border:none;
                    border-radius:4px;font-size:0.75rem;font-weight:700;
-                   cursor:pointer;padding:0.3rem 0.6rem;margin:0 0.3rem;
+                   cursor:pointer;padding:0.3rem 0.6rem;
                    min-width:40px;min-height:32px">Del</button>
           <span>▾</span>
         </div>
@@ -115,6 +125,11 @@ function renderStudents(list) {
                        padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer">
                 अलग mark
               </button>
+              <button onclick="openHisabModal('${m._id}')"
+                style="background:none;border:1px solid #1a7a4a;color:#1a7a4a;border-radius:4px;
+                       padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer">
+                हिसाब
+              </button>
               <button onclick="deleteStudent('${m._id}','${m.name}')"
                 style="background:none;border:1px solid #dc3545;color:#dc3545;
                        border-radius:4px;padding:0.2rem 0.5rem;
@@ -131,6 +146,7 @@ function renderStudents(list) {
     const isDue = hasDue(student);
     const headerClass = student.verify ? 'verify' : isDue ? 'due' : '';
     const nameDisplay = `${student.name}${student.identity ? ' ' + student.identity : ''}`;
+    const studentFeeType = student.isFamilyFee ? "Family Fee" : "Individual Fee";
 
     html += `
     <div class="student-card">
@@ -141,7 +157,8 @@ function renderStudents(list) {
             ${student.verify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
           <div class="student-meta">
-            Due: ${student.dueDate} तारीख •
+            Due: ${student.dueDate} तारीख • 
+            Type: <strong>${studentFeeType}</strong> •
             ${student.batch ? 'Batch ' + student.batch + ' • ' : ''}
             ₹${student.monthlyFee || 0}/month
           </div>
@@ -149,10 +166,15 @@ function renderStudents(list) {
         <div class="student-badges">
           ${isDue ? '<span class="badge badge-red">Due</span>' :
                     '<span class="badge badge-green">Clear</span>'}
+          <button onclick="event.stopPropagation();openHisabModal('${student._id}')"
+            style="background:#1a7a4a;color:white;border:none;
+                   border-radius:4px;font-size:0.75rem;font-weight:700;
+                   cursor:pointer;padding:0.3rem 0.6rem;margin-right:0.3rem;
+                   min-height:32px">📖 हिसाब</button>
           <button onclick="event.stopPropagation();deleteStudent('${student._id}','${student.name}')"
             style="background:#dc3545;color:white;border:none;
                    border-radius:4px;font-size:0.75rem;font-weight:700;
-                   cursor:pointer;padding:0.3rem 0.6rem;margin:0 0.3rem;
+                   cursor:pointer;padding:0.3rem 0.6rem;
                    min-width:40px;min-height:32px">Del</button>
           <span>▾</span>
         </div>
@@ -261,15 +283,21 @@ function openAddModal() {
   document.getElementById('addModal').classList.add('open');
 }
 
+function toggleFamilyFeeUI() {
+  // इस यूटिलिटी का उपयोग अतिरिक्त विज़ुअल टॉगलिंग के लिए कर सकते हैं
+}
+
 async function addStudent() {
   const name = document.getElementById('newName').value.trim();
   if (!name) { alert('नाम डालें!'); return; }
+
+  const isFamilyFeeSelected = document.getElementById('radioFamily').checked;
 
   const data = {
     name,
     identity: document.getElementById('newIdentity').value.trim(),
     familyCode: document.getElementById('newFamilyCode').value.trim(),
-    isFamilyFee: document.getElementById('newIsFamilyFee').checked,
+    isFamilyFee: isFamilyFeeSelected,
     monthlyFee: parseInt(document.getElementById('newFee').value) || 0,
     batch: document.getElementById('newBatch').value,
     dueDate: parseInt(document.getElementById('newDueDate').value),
@@ -286,7 +314,7 @@ async function addStudent() {
     loadStudents();
     ['newName','newIdentity','newFamilyCode','newFee','newJoinDate']
       .forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('newIsFamilyFee').checked = false;
+    document.getElementById('radioIndividual').checked = true;
   } catch (err) {
     alert('Error: ' + err.message);
   }
@@ -314,6 +342,110 @@ function openMarkModal(studentId, month, year, isFamily, familyCode) {
   document.getElementById('markNote').value = existing?.note || '';
 
   document.getElementById('markModal').classList.add('open');
+}
+
+// डायरी स्टाइल हिसाब पॉपअप खोलना (Individual)
+function openHisabModal(studentId) {
+  const student = students.find(s => s._id === studentId);
+  if (!student) return;
+
+  document.getElementById('hisabStudentTitle').innerText = `${student.name} का हिसाब`;
+  const badge = document.getElementById('hisabFeeTypeBadge');
+  badge.innerText = student.isFamilyFee ? "Family Fee" : "Individual Fee";
+  badge.className = student.isFamilyFee ? "badge badge-green" : "badge badge-blue";
+
+  renderDiaryTable(student);
+  document.getElementById('hisabModal').classList.add('open');
+}
+
+// डायरी स्टाइल हिसाब पॉपअप खोलना (Family)
+function openHisabModalForFamily(familyCode) {
+  const members = students.filter(s => s.familyCode === familyCode);
+  if (members.length === 0) return;
+
+  // फॅमिली के पहले सदस्य की फीस हिस्ट्री से शो करेंगे
+  const parentStudent = members[0];
+  const names = members.map(m => m.name).join(' • ');
+
+  document.getElementById('hisabStudentTitle').innerText = `${familyCode} परिवार हिसाब (${names})`;
+  const badge = document.getElementById('hisabFeeTypeBadge');
+  badge.innerText = parentStudent.isFamilyFee ? "Family Fee" : "Individual Fee";
+  badge.className = parentStudent.isFamilyFee ? "badge badge-green" : "badge badge-blue";
+
+  renderDiaryTable(parentStudent, true, familyCode);
+  document.getElementById('hisabModal').classList.add('open');
+}
+
+// डायरी स्टाइल में टेबल की रोज (Rows) रेंडर करना
+function renderDiaryTable(student, isFamily = false, familyCode = '') {
+  const tbody = document.getElementById('hisabTableBody');
+  tbody.innerHTML = '';
+
+  // हालिया महीने जो ट्रैक होने चाहिए (पिछले 6 महीने और चालू महीना)
+  const visible = getVisibleMonths();
+  
+  visible.forEach(({ month, year }) => {
+    const fee = student.fees?.find(f => f.month === month && f.year === year);
+    const status = fee ? fee.status : 'unpaid';
+    const paidOn = fee ? fee.paidOn : 'बाकी';
+    const amount = fee ? fee.paidAmount : (student.monthlyFee || 0);
+
+    let statusHtml = '';
+    if (status === 'paid') {
+      statusHtml = `<span style="color:#1a7a4a; font-weight:bold;">✅ Paid (₹${amount})</span>`;
+    } else if (status === 'partial') {
+      statusHtml = `<span style="color:#e6a817; font-weight:bold;">⚠️ Partial (₹${amount})</span>`;
+    } else if (status === 'advance') {
+      statusHtml = `<span style="color:#0c6075; font-weight:bold;">⏭️ Advance (₹${amount})</span>`;
+    } else {
+      statusHtml = `<button onclick="quickPayFromHisab('${student._id}', '${month}', ${year}, ${isFamily}, '${familyCode}')" style="background:#dc3545; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;">⏳ बाकी (Mark Paid)</button>`;
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight: 600;">1 ${month} ${year}</td>
+      <td style="color: ${paidOn === 'बाकी' ? '#dc3545' : '#1a7a4a'}; font-weight: 500;">${paidOn}</td>
+      <td>${statusHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// हिसाब मॉडल से सीधे "Mark Paid" करना
+async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
+  const student = students.find(s => s._id === studentId);
+  const data = {
+    month: month,
+    year: year,
+    status: 'paid',
+    paidAmount: student ? student.monthlyFee : 0,
+    note: 'हिसाब से डायरेक्ट जमा'
+  };
+
+  try {
+    const url = isFamily ?
+      `${API}/family/${familyCode}/fees` :
+      `${API}/${studentId}/fees`;
+
+    await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    // रीलोड और रि-रेंडर करें
+    const res = await fetch(API);
+    students = await res.json();
+    renderStudents(students);
+    
+    if (isFamily) {
+      openHisabModalForFamily(familyCode);
+    } else {
+      openHisabModal(studentId);
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
 }
 
 async function saveFees() {
@@ -375,3 +507,5 @@ function closeModal(id) {
 }
 
 loadStudents();
+
+```
