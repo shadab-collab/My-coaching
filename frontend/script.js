@@ -1,4 +1,4 @@
-// API डिक्लेरेशन और कॉन्फ़िगरेशन
+// API डिक्लेरेशन और कॉन्फ़िगरेशन सबसे ऊपर
 const API = '/api/students';
 const MONTHS = ['JN','FB','MR','AP','MY','JU','JL','AG','SP','OC','NV','DC'];
 const CUR_YEAR = new Date().getFullYear();
@@ -77,7 +77,7 @@ function renderStudents(list) {
 
   let html = '';
 
-  // 1. फ़ैमिली ग्रुप्स की रेंडरिंग (सुधरा हुआ फ़ॉर्मेट)
+  // 1. फ़ैमिली ग्रुप्स की रेंडरिंग (सुधरा और सुव्यवस्थित फ़ॉर्मेट)
   Object.keys(groups).sort().forEach(code => {
     const members = groups[code];
     const isDue = members.some(s => hasDue(s));
@@ -85,12 +85,14 @@ function renderStudents(list) {
     const headerClass = hasVerify ? 'verify' : isDue ? 'due' : '';
     const fee = members[0].monthlyFee || 0;
 
-    // नामों को बुलेट ( • ) से जोड़ना, बिना बार-बार कोड रिपीट किए
+    // यहाँ केवल साफ़ नाम जुड़ेंगे (जैसे: AASHKA • SAMYA • ZISHAN)
     const namesOnly = members.map(m => m.name).join(' • ');
     
-    // पहचान (Identity / Guardian Name) अंत में एक बार दिखाने के लिए
+    // पहचान (Identity/Guardian Name) जो अंत में केवल एक बार ब्रैकेट में आएगी
     const commonIdentity = members.find(m => m.identity && m.identity.trim() !== '')?.identity || '';
-    const nameDisplay = `${namesOnly}${commonIdentity ? ' (' + commonIdentity + ')' : ''}`;
+    
+    // अंतिम रूप: शुरू में कोड, बीच में साफ़ नाम, अंत में पहचान
+    const finalCardTitle = `${namesOnly}${commonIdentity ? ' (' + commonIdentity + ')' : ''}`;
 
     const familyFeeType = members[0].isFamilyFee ? "Family Fee" : "Individual Fee";
 
@@ -99,7 +101,7 @@ function renderStudents(list) {
       <div class="student-header ${headerClass}" onclick="toggleFees('grp-${code}')">
         <div>
           <div class="student-name">
-            <span class="family-tag">${code}</span> ${nameDisplay}
+            <span class="family-tag">${code}</span> ${finalCardTitle}
             ${hasVerify ? ' <span style="color:#fd7e14">⚠️</span>' : ''}
           </div>
           <div class="student-meta">
@@ -276,7 +278,7 @@ async function addStudent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!response.ok) throw new Error('सर्वर एरer');
+    if (!response.ok) throw new Error('सर्वर एरर');
     closeModal('addModal');
     loadStudents();
     ['newName','newIdentity','newFamilyCode','newFee','newJoinDate'].forEach(id => { document.getElementById(id).value = ''; });
