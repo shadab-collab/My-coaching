@@ -82,6 +82,7 @@ function renderStudents(list) {
 
   let html = '';
 
+  // 1. फ़ैमिली ग्रुप्स की रेंडरिंग (सुधरा हुआ फ़ॉर्मेट)
   Object.keys(groups).sort().forEach(code => {
     const members = groups[code];
     const isDue = members.some(s => hasDue(s));
@@ -89,9 +90,14 @@ function renderStudents(list) {
     const headerClass = hasVerify ? 'verify' : isDue ? 'due' : '';
     const fee = members[0].monthlyFee || 0;
 
-    const nameDisplay = members.map(m =>
-      `${code} ${m.name}${m.identity ? ' ' + m.identity : ''}`
-    ).join(' • ');
+    // सिर्फ बच्चों के नामों को बुलेट ( • ) से जोड़ना, बिना बार-बार कोड रिपीट किए
+    const namesOnly = members.map(m => m.name).join(' • ');
+    
+    // पहचान (Identity / Guardian Name) ढूँढना जो किसी भी एक मेंबर में हो
+    const commonIdentity = members.find(m => m.identity && m.identity.trim() !== '')?.identity || '';
+    
+    // अंतिम डिस्प्ले नाम: कोड शुरू में एक बार, और पहचान अंत में एक बार
+    const nameDisplay = `${code} ${namesOnly}${commonIdentity ? ' (' + commonIdentity + ')' : ''}`;
 
     const familyFeeType = members[0].isFamilyFee ? "Family Fee" : "Individual Fee";
 
@@ -164,10 +170,11 @@ function renderStudents(list) {
     </div>`;
   });
 
+  // 2. सिंगल (Solo) स्टूडेंट्स की रेंडरिंग
   solo.forEach(student => {
     const isDue = hasDue(student);
     const headerClass = student.verify ? 'verify' : isDue ? 'due' : '';
-    const nameDisplay = `${student.name}${student.identity ? ' ' + student.identity : ''}`;
+    const nameDisplay = `${student.name}${student.identity ? ' (' + student.identity + ')' : ''}`;
     const studentFeeType = student.isFamilyFee ? "Family Fee" : "Individual Fee";
 
     html += `
@@ -364,7 +371,6 @@ function openMarkModal(studentId, month, year, isFamily, familyCode) {
   document.getElementById('markModal').classList.add('open');
 }
 
-// डायरी स्टाइल हिसाब पॉपअप खोलना (Individual)
 function openHisabModal(studentId) {
   const student = students.find(s => s._id === studentId);
   if (!student) return;
@@ -378,7 +384,6 @@ function openHisabModal(studentId) {
   document.getElementById('hisabModal').classList.add('open');
 }
 
-// डायरी स्टाइल हिसाब पॉपअप खोलना (Family)
 function openHisabModalForFamily(familyCode) {
   const members = students.filter(s => s.familyCode === familyCode);
   if (members.length === 0) return;
@@ -395,7 +400,6 @@ function openHisabModalForFamily(familyCode) {
   document.getElementById('hisabModal').classList.add('open');
 }
 
-// डायरी स्टाइल में टेबल की रोज (Rows) रेंडर करना
 function renderDiaryTable(student, isFamily = false, familyCode = '') {
   const tbody = document.getElementById('hisabTableBody');
   tbody.innerHTML = '';
@@ -429,7 +433,6 @@ function renderDiaryTable(student, isFamily = false, familyCode = '') {
   });
 }
 
-// हिसाब मॉडल से सीधे "Mark Paid" करना
 async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
   const student = students.find(s => s._id === studentId);
   const data = {
@@ -494,6 +497,7 @@ async function saveFees() {
   }
 }
 
+// फ़ैमिली ऑप्शन्स और डिलीट डिलीट लॉजिक
 function showFamilyOptions(code) {
   const members = students.filter(s => s.familyCode === code);
   const names = members.map(m => m.name).join(', ');
