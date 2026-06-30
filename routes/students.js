@@ -3,14 +3,12 @@ const router = express.Router();
 const Student = require('../models/student');
 const Family = require('../models/family');
 
-// आज की तारीख को "DD MMM YYYY" फ़ॉर्मेट में बदलने का फंक्शन (e.g. 30 Jun 2026)
+// आज की तारीख का "DD MMM YYYY" फ़ॉर्मेट
 function getFormattedTodayDate() {
   const d = new Date();
   const day = d.getDate();
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = months[d.getMonth()];
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 router.get('/', async (req, res) => {
@@ -22,12 +20,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// फ़ैमिली को एक साथ जोड़ने का नया बल्क रूट
+// फ़ैमिली को एक साथ जोड़ने का बल्क रूट
 router.post('/bulk', async (req, res) => {
   try {
     const { familyCode, isFamilyFee, totalFamilyFee, dueDate, joinDate, batch, identity, members } = req.body;
     
-    // फ़ैमिली कॉन्फ़िगरेशन सहेजें
+    // फ़ैमिली कॉन्फ़िगरेशन को सहेजें
     if (familyCode && isFamilyFee) {
       await Family.findOneAndUpdate(
         { code: familyCode },
@@ -46,7 +44,7 @@ router.post('/bulk', async (req, res) => {
         batch: batch,
         joinDate: joinDate,
         isFamilyFee: isFamilyFee,
-        monthlyFee: isFamilyFee ? 0 : (m.individualFee || 0) // अगर फिक्स डील है तो यहाँ 0 रहेगा, बाद में स्प्लिट होगा
+        monthlyFee: isFamilyFee ? 0 : (m.monthlyFee || 0)
       };
       const student = new Student(studentData);
       await student.save();
@@ -93,10 +91,12 @@ router.put('/:id', async (req, res) => {
 
 router.put('/:id/fees', async (req, res) => {
   try {
-    const { month, year, status, paidAmount, note } = req.body;
+    const { month, year, status, paidAmount, note, paidOn } = req.body;
     const student = await Student.findById(req.params.id);
     const idx = student.fees.findIndex(f => f.month === month && f.year === year);
-    const paidOnDate = (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
+    
+    // अगर अन-डू हो रहा है तो जो पुरानी डेट पास की है वही रखेंगे, वरना आज की डेट
+    const paidOnDate = paidOn ? paidOn : (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
 
     if (idx > -1) {
       student.fees[idx] = { month, year, status, paidAmount, note, paidOn: paidOnDate };
@@ -110,7 +110,7 @@ router.put('/:id/fees', async (req, res) => {
   }
 });
 
-// फ़ैमिली फीस जमा करने का कंबाइंड प्रोपोरशनल स्प्लिट महा-लॉजिक
+// फ़ैमिली फीस अपडेट करने का कंबाइंड स्प्लिट लॉजिक
 router.put('/family/:code/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
@@ -141,11 +141,9 @@ router.put('/family/:code/fees', async (req, res) => {
           if (i === totalMembers - 1) {
             memberShare = totalToDistribute - distributedSum;
           } else if (isFixedFamilyFee) {
-            // अगर फिक्स फ़ैमिली फीस डील है, तो कुल जमा राशि को सभी बच्चों में बराबर बाँटें
             memberShare = Math.round(totalToDistribute / totalMembers);
             distributedSum += memberShare;
           } else if (totalExpectedFee > 0) {
-            // अगर व्यक्तिगत अलग-अलग फीस तय है, तो रेशियो (अनुपात) के हिसाब से बाँटें (e.g. 300:500)
             memberShare = Math.round(totalToDistribute * ((s.monthlyFee || 0) / totalExpectedFee));
             distributedSum += memberShare;
           } else {

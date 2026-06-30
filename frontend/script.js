@@ -10,10 +10,73 @@ let currentMonth = null;
 let currentYear = null;
 let isFamilyMark = false;
 
-// क्लीन शुरुआत के लिए मंथ फिल्टर (1 जुलाई 2026 से पहले का छुपाने के लिए)
+// अन-डू सिस्टम ट्रैकर
+let lastAction = null; 
+let undoTimeout = null;
+
+function showUndoToast() {
+  const toast = document.getElementById('undoNotification');
+  if (toast) {
+    toast.style.display = 'flex';
+    if (undoTimeout) clearTimeout(undoTimeout);
+    // 12 सेकंड बाद अन-डू बटन को खुद ही छुपाएं
+    undoTimeout = setTimeout(hideUndoToast, 12000); 
+  }
+}
+
+function hideUndoToast() {
+  const toast = document.getElementById('undoNotification');
+  if (toast) toast.style.display = 'none';
+  lastAction = null;
+}
+
+// जादुई अन-डू ट्रिगर
+async function triggerUndo() {
+  if (!lastAction) return;
+  try {
+    if (lastAction.type === 'single') {
+      const state = lastAction.previousState || { status: 'unpaid', paidAmount: 0, note: '', paidOn: 'बाकी' };
+      const response = await fetch(`${API}/${lastAction.studentId}/fees`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month: lastAction.month,
+          year: lastAction.year,
+          status: state.status,
+          paidAmount: state.paidAmount,
+          note: state.note || '',
+          paidOn: state.paidOn || 'बाकी'
+        })
+      });
+      if (!response.ok) throw new Error('अन-डू विफल रहा');
+    } else if (lastAction.type === 'family') {
+      for (let prev of lastAction.previousStates) {
+        const state = prev.feeState || { status: 'unpaid', paidAmount: 0, note: '', paidOn: 'बाकी' };
+        await fetch(`${API}/${prev.studentId}/fees`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            month: lastAction.month,
+            year: lastAction.year,
+            status: state.status,
+            paidAmount: state.paidAmount,
+            note: state.note || '',
+            paidOn: state.paidOn || 'बाकी'
+          })
+        });
+      }
+    }
+    hideUndoToast();
+    showCustomAlert('🔄 पिछला बदलाव सफलतापूर्वक वापस ले लिया गया है!');
+    loadStudents();
+  } catch (err) {
+    showCustomAlert('Undo करने में समस्या: ' + err.message);
+  }
+}
+
 function isMonthBeforeJoin(monthName, year, joinDateStr) {
   const monthIdx = MONTHS.indexOf(monthName);
-  let startYear = 2026, startMonthIdx = 6; // default July 2026
+  let startYear = 2026, startMonthIdx = 6; 
   if (joinDateStr) {
     const jd = new Date(joinDateStr);
     if (!isNaN(jd.getTime())) { startYear = jd.getFullYear(); startMonthIdx = jd.getMonth(); }
@@ -83,7 +146,6 @@ function getFormattedTodayDate() {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-// मुख्य रेंडरिंग इंजन
 function renderStudents(list) {
   const container = document.getElementById('studentList');
   if (list.length === 0) {
@@ -112,7 +174,6 @@ function renderStudents(list) {
     const isDue = members.some(s => hasDue(s));
     const headerClass = members.some(s => s.verify) ? 'verify' : isDue ? 'due' : '';
     
-    // वर्तमान फैमली कॉन्फ़िगरेशन
     const isFixedFamilyFee = members.some(s => s.isFamilyFee);
     const splitType = members[0].splitType || 'auto';
     const totalFamilyFee = members.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
@@ -279,7 +340,7 @@ function filterStudents() {
   renderStudents(filtered);
 }
 
-// ----------------- + STUDENT BUTTON CONTROLS (सुधरा हुआ तालमेल) -----------------
+// ----------------- + STUDENT BUTTON CONTROLS -----------------
 function openAddStudentModal() {
   document.getElementById('addStudentModal').classList.add('open');
 }
@@ -315,7 +376,7 @@ async function saveIndividualStudent() {
   }
 }
 
-// ----------------- + FAMILY BUTTON CONTROLS (सुधरा हुआ तालमेल) -----------------
+// ----------------- + FAMILY BUTTON CONTROLS -----------------
 let currentFamilyMemberRows = 1;
 
 function openAddFamilyModal() {
@@ -338,10 +399,8 @@ function toggleFamilyFormSplitFields() {
   const splitType = document.getElementById('famSplitType').value;
   const isAuto = splitType === 'auto';
   
-  // पैकेज फीस इनपुट बॉक्स दिखाएं या छुपाएं
   document.getElementById('famTotalFeeRow').style.display = isAuto ? 'block' : 'none';
   
-  // बच्चों की फीस बॉक्स दिखाएं या छुपाएं
   const feeInputs = document.querySelectorAll('.f-input-fee');
   feeInputs.forEach(input => {
     input.style.display = isAuto ? 'none' : 'block';
@@ -580,8 +639,23 @@ function generateInvoice(studentId, month, year, isFamily, familyCode) {
 
 async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
   const student = students.find(s => s._id === studentId);
-  
-  let paymentAmount = student ? student.monthlyFee : 0;
+  if (!student) return;
+
+  // अन-डू बैकअप स्टेट लें बदलने से पहले
+  if (isFamily && familyCode) {
+    const familyMembers = students.filter(s => s.familyCode === familyCode);
+    const previousStates = familyMembers.map(m => {
+      const f = m.fees?.find(x => x.month === month && x.year === year);
+      return { studentId: m._id, feeState: f ? { ...f } : null };
+    });
+    lastAction = { type: 'family', month, year, previousStates };
+  } else {
+    const f = student.fees?.find(x => x.month === month && x.year === year);
+    lastAction = { type: 'single', studentId, month, year, previousState: f ? { ...f } : null };
+  }
+  showUndoToast();
+
+  let paymentAmount = student.monthlyFee || 0;
   if (isFamily && familyCode) {
     const familyMembers = students.filter(s => s.familyCode === familyCode);
     paymentAmount = familyMembers.reduce((sum, m) => sum + (m.monthlyFee || 0), 0);
@@ -612,6 +686,20 @@ async function quickPayFromHisab(studentId, month, year, isFamily, familyCode) {
 }
 
 async function saveFees() {
+  // अन-डू बैकअप स्टेट लें बदलने से पहले
+  if (isFamilyMark && window.currentFamilyCode) {
+    const familyMembers = students.filter(s => s.familyCode === window.currentFamilyCode);
+    const previousStates = familyMembers.map(m => {
+      const f = m.fees?.find(x => x.month === currentMonth && x.year === currentYear);
+      return { studentId: m._id, feeState: f ? { ...f } : null };
+    });
+    lastAction = { type: 'family', month: currentMonth, year: currentYear, previousStates };
+  } else {
+    const f = currentStudent.fees?.find(x => x.month === currentMonth && x.year === currentYear);
+    lastAction = { type: 'single', studentId: currentStudent._id, month: currentMonth, year: currentYear, previousState: f ? { ...f } : null };
+  }
+  showUndoToast();
+
   const data = {
     month: currentMonth,
     year: currentYear,

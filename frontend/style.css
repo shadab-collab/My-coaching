@@ -38,20 +38,25 @@ nav {
   font-size: 1.1rem;
   font-weight: 700;
 }
-.btn-add {
+.btn-add-student {
   background: var(--gold);
   color: var(--dark);
   border: none;
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 0.8rem;
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
-  font-size: 0.9rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: transform 0.1s;
+  font-size: 0.85rem;
 }
-.btn-add:active {
-  transform: scale(0.95);
+.btn-add-family {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.85rem;
 }
 
 /* LIVE DASHBOARD GRID */
@@ -238,6 +243,35 @@ nav {
   cursor: pointer;
 }
 
+/* FLOATING UNDO TOAST STYLE */
+.undo-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--dark);
+  color: white;
+  padding: 0.8rem 1.2rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  z-index: 999;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1px solid var(--gold);
+}
+.btn-undo-action {
+  background: var(--gold);
+  color: var(--dark);
+  border: none;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
 /* INVOICE / RECEIPT STYLING */
 .receipt-box {
   max-width: 420px !important;
@@ -352,23 +386,6 @@ nav {
   margin-bottom: 0.6rem;
   color: var(--green);
 }
-.radio-group {
-  display: flex;
-  gap: 1.2rem;
-}
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.radio-label input[type="radio"] {
-  width: 1.2rem;
-  height: 1.2rem;
-  accent-color: var(--green);
-}
 
 .modal-btns {
   display: flex;
@@ -417,54 +434,6 @@ nav {
   font-size: 0.75rem;
   font-weight: 700;
   margin-right: 0.3rem;
-}
-
-.member-actions-tray {
-  width: 100%;
-  margin-top: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  border-top: 1.5px dashed #e0e6e2;
-  padding-top: 0.8rem;
-}
-
-.member-sub-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fdfdfd;
-  padding: 0.5rem;
-  border-radius: 8px;
-  border: 1px solid #eee;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.member-sub-row span {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--dark);
-  flex: 1;
-  min-width: 100px;
-}
-
-.btn-sub {
-  background: #fff;
-  border: 1.5px solid #ddd;
-  border-radius: 6px;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  font-weight: bold;
-}
-.btn-sub.edit {
-  border-color: var(--blue);
-  color: var(--blue);
-}
-.btn-sub.red {
-  border-color: var(--red);
-  color: var(--red);
 }
 
 @media(min-width: 600px) {
