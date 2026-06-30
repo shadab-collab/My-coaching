@@ -1,59 +1,99 @@
-const Family = require("../models/family");
-const Student = require("../models/student");
-const familyEngine = require("../services/familyEngine");
+const Student = require('../models/student');
+const Family = require('../models/family');
 
-/**
- * Add Student to Family
- */
-exports.addMember = async (req, res) => {
-  
+// नई Family + सभी Members Add
+exports.createFamily = async (req, res) => {
   try {
-    
-    const { familyCode, studentId } = req.body;
-    
-    const family = await Family.findOne({ code: familyCode });
-    
-    if (!family) {
-      return res.status(404).json({
-        success: false,
-        message: "Family not found"
-      });
-    }
-    
-    const student = await Student.findById(studentId);
-    
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found"
-      });
-    }
-    
-    family.members.push({
-      student: student._id,
-      active: true
+
+    const {
+      familyCode,
+      splitType,
+      totalFamilyFee,
+      dueDate,
+      batch,
+      identity,
+      joinDate,
+      members
+    } = req.body;
+
+    // पहले Family Save
+    const family = new Family({
+      code: familyCode,
+      monthlyFee: totalFamilyFee,
+      dueDate,
+      splitType
     });
-    
-    family.history.push({
-      action: "ADD_MEMBER",
-      note: student.name + " added"
-    });
-    
+
     await family.save();
-    
+
+    // Auto Split
+    let autoFee = 0;
+
+    if (splitType === "auto") {
+      autoFee = Math.round(totalFamilyFee / members.length);
+    }
+
+    // सभी Members Save
+    for (const member of members) {
+
+      await Student.create({
+
+        name: member.name,
+
+        identity,
+
+        familyCode,
+
+        batch,
+
+        dueDate,
+
+        joinDate,
+
+        isFamilyFee: true,
+
+        monthlyFee:
+          splitType === "auto"
+            ? autoFee
+            : member.monthlyFee,
+
+        active: true
+
+      });
+
+    }
+
     res.json({
       success: true,
-      message: "Member Added Successfully",
-      family
+      message: "Family Created Successfully"
     });
-    
+
   } catch (err) {
-    
+
     res.status(500).json({
-      success: false,
       error: err.message
     });
-    
+
   }
-  
+};
+
+// Family Status
+exports.familyStatus = async (req, res) => {
+
+  try {
+
+    const members = await Student.find({
+      familyCode: req.params.code
+    });
+
+    res.json(members);
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
 };
