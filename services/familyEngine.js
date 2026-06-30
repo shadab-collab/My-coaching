@@ -1,40 +1,80 @@
-// services/familyEngine.js
+// services/FamilyEngine.js
 
 /**
  * AUTO SPLIT
  * Example:
- * ₹800 / 4 Students = ₹200 each
+ * ₹800 / 4 = ₹200
  */
-function calculateAutoSplit(monthlyFee, totalMembers) {
+function calculateAutoSplit(totalFee, members) {
   
-  if (!totalMembers || totalMembers <= 0) {
-    return 0;
-  }
+  if (!members || members.length === 0) return [];
   
-  return Math.round(monthlyFee / totalMembers);
+  const share = Math.round(totalFee / members.length);
+  
+  return members.map(member => ({
+    studentId: member._id,
+    amount: share
+  }));
+  
 }
 
 
 /**
  * MANUAL SPLIT
- * Returns custom fee of each member
  */
-function calculateManualSplit(member) {
+function calculateManualSplit(members) {
   
-  return member.customFee || 0;
+  return members.map(member => ({
+    studentId: member._id,
+    amount: member.monthlyFee || 0
+  }));
   
 }
 
 
 /**
- * Returns only active members
+ * Get Active Members
  */
-function getActiveMembers(family) {
+function getActiveMembers(members) {
   
-  return family.members.filter(m => m.active);
+  return members.filter(m => m.active === true);
   
 }
 
+
+/**
+ * Total Family Fee
+ */
+function getFamilyTotal(members) {
+  
+  return members.reduce((sum, m) => {
+    
+    return sum + (m.monthlyFee || 0);
+    
+  }, 0);
+  
+}
+
+
+/**
+ * Find Head Member
+ * (पहला Active Member)
+ */
+function getFamilyHead(members) {
+  
+  return members.find(m => m.active) || null;
+  
+}
+
+
+/**
+ * Member Count
+ */
+function getMemberCount(members) {
+  
+  return getActiveMembers(members).length;
+  
+}
 
 module.exports = {
   
@@ -42,6 +82,12 @@ module.exports = {
   
   calculateManualSplit,
   
-  getActiveMembers
+  getActiveMembers,
+  
+  getFamilyTotal,
+  
+  getFamilyHead,
+  
+  getMemberCount
   
 };

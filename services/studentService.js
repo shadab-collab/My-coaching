@@ -1,70 +1,93 @@
 const Student = require("../models/student");
 
 /**
- * Create New Student
+ * Create Student
  */
 async function createStudent(data) {
-  
-  const student = new Student(data);
-  
-  await student.save();
-  
-  return student;
-  
+  return await Student.create(data);
 }
 
 /**
- * Get Active Students
+ * Get All Active Students
  */
 async function getActiveStudents() {
-  
   return await Student.find({
-    status: "ACTIVE"
+    active: true
   }).sort({
     name: 1
   });
-  
 }
 
 /**
- * Get Student By ID
+ * Get All Students
+ */
+async function getAllStudents() {
+  return await Student.find().sort({
+    name: 1
+  });
+}
+
+/**
+ * Get Student By Id
  */
 async function getStudentById(id) {
-  
   return await Student.findById(id);
-  
 }
 
 /**
  * Update Student
  */
 async function updateStudent(id, data) {
-  
   return await Student.findByIdAndUpdate(
     id,
     data,
     {
-      new: true
+      new: true,
+      runValidators: true
     }
   );
-  
 }
 
 /**
- * Active / Inactive Student
+ * Soft Delete
  */
-async function changeStudentStatus(id, status) {
-  
+async function deactivateStudent(id) {
   return await Student.findByIdAndUpdate(
     id,
     {
-      status
+      active: false
     },
     {
       new: true
     }
   );
-  
+}
+
+/**
+ * Restore Student
+ */
+async function activateStudent(id) {
+  return await Student.findByIdAndUpdate(
+    id,
+    {
+      active: true
+    },
+    {
+      new: true
+    }
+  );
+}
+
+/**
+ * Family Members
+ */
+async function getFamilyMembers(code) {
+  return await Student.find({
+    familyCode: code,
+    active: true
+  }).sort({
+    name: 1
+  });
 }
 
 module.exports = {
@@ -73,10 +96,16 @@ module.exports = {
   
   getActiveStudents,
   
+  getAllStudents,
+  
   getStudentById,
   
   updateStudent,
   
-  changeStudentStatus
+  deactivateStudent,
+  
+  activateStudent,
+  
+  getFamilyMembers
   
 };
