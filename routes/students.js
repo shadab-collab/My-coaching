@@ -35,6 +35,8 @@ router.post('/', async (req, res) => {
   try {
     const student = new Student(req.body);
     await student.save();
+    
+    // अगर फ़ैमिली फीस फिक्स की गई है, तो फ़ैमिली मॉडल में अपडेट करें
     if (req.body.familyCode && req.body.isFamilyFee) {
       await Family.findOneAndUpdate(
         { code: req.body.familyCode },
@@ -51,6 +53,14 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // यदि एडिट करते समय फ़ैमिली फीस अपडेट की गई हो
+    if (req.body.familyCode && req.body.isFamilyFee) {
+      await Family.findOneAndUpdate(
+        { code: req.body.familyCode },
+        { monthlyFee: req.body.monthlyFee },
+        { upsert: true }
+      );
+    }
     res.json(student);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -77,7 +87,7 @@ router.put('/:id/fees', async (req, res) => {
   }
 });
 
-// अनुपातिक रेशियो बँटवारा लॉजिक (Proportional Ratio Split)
+// फिक्स फैमिली फीस और अनुपातिक स्प्लिट का कंबाइंड महा-लॉजिक
 router.put('/family/:code/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
@@ -89,8 +99,18 @@ router.put('/family/:code/fees', async (req, res) => {
       const isPaying = (status === 'paid' || status === 'advance' || status === 'partial');
       const totalToDistribute = isPaying ? paidAmount : 0;
 
-      // परिवार के सभी बच्चों की फीस का कुल योग निकालें
-      const totalExpectedFee = students.reduce((sum, s) => sum + (s.monthlyFee || 0), 0);
+      // चेक करें कि क्या इस फैमिली की कुल फीस अलग से फिक्स (Family Fee = true) की गई है
+      const familyConfig = await Family.findOne({ code: req.params.code });
+      const isFixedFamilyFee = students.some(s => s.isFamilyFee) || (familyConfig ? true : false);
+
+      let totalExpectedFee = 0;
+      if (isFixedFamilyFee && familyConfig) {
+        // अगर गार्जियन से कुल डील फिक्स है, तो उसी डील को बेस मानें
+        totalExpectedFee = familyConfig.monthlyFee || 800;
+      } else {
+        // अन्यथा सभी बच्चों की अलग-अलग तय फीस का योग निकालें
+        totalExpectedFee = students.reduce((sum, s) => sum + (s.monthlyFee || 0), 0);
+      }
 
       let distributedSum = 0;
       for (let i = 0; i < totalMembers; i++) {
@@ -99,14 +119,17 @@ router.put('/family/:code/fees', async (req, res) => {
 
         if (isPaying) {
           if (i === totalMembers - 1) {
-            // आखरी बच्चे को बचा हुआ हिस्सा दें ताकि राउंडिंग में 1 रुपया भी इधर-उधर न हो
+            // आखरी बच्चे को बैलेंस राशि दें ताकि राउंडिंग एरर न आए
             memberShare = totalToDistribute - distributedSum;
+          } else if (isFixedFamilyFee) {
+            // अगर फिक्स फैमिली डील है, तो कुल जमा राशि को सभी बच्चों में बराबर बाँटें
+            memberShare = Math.round(totalToDistribute / totalMembers);
+            distributedSum += memberShare;
           } else if (totalExpectedFee > 0) {
-            // बच्चे की व्यक्तिगत मासिक फीस के अनुपात में कुल जमा राशि को बाँटें
+            // अगर व्यक्तिगत फीस तय है, तो रेशियो के हिसाब से बाँटें
             memberShare = Math.round(totalToDistribute * ((s.monthlyFee || 0) / totalExpectedFee));
             distributedSum += memberShare;
           } else {
-            // अगर किसी की फीस सेट नहीं है तो बराबर बाँटें
             memberShare = Math.round(totalToDistribute / totalMembers);
             distributedSum += memberShare;
           }
