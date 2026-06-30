@@ -11,6 +11,7 @@ function getFormattedTodayDate() {
   return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// सभी सक्रिय छात्र प्राप्त करें
 router.get('/', async (req, res) => {
   try {
     const students = await Student.find({ active: true }).sort({ name: 1 });
@@ -20,42 +21,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// फ़ैमिली को एक साथ जोड़ने का बल्क रूट
-router.post('/bulk', async (req, res) => {
-  try {
-    const { familyCode, isFamilyFee, totalFamilyFee, dueDate, joinDate, batch, identity, members } = req.body;
-    
-    // फ़ैमिली कॉन्फ़िगरेशन को सहेजें
-    if (familyCode && isFamilyFee) {
-      await Family.findOneAndUpdate(
-        { code: familyCode },
-        { code: familyCode, monthlyFee: totalFamilyFee, dueDate: dueDate },
-        { upsert: true, new: true }
-      );
-    }
-
-    const savedStudents = [];
-    for (let m of members) {
-      const studentData = {
-        name: m.name,
-        identity: identity,
-        familyCode: familyCode,
-        dueDate: dueDate,
-        batch: batch,
-        joinDate: joinDate,
-        isFamilyFee: isFamilyFee,
-        monthlyFee: isFamilyFee ? 0 : (m.monthlyFee || 0)
-      };
-      const student = new Student(studentData);
-      await student.save();
-      savedStudents.push(student);
-    }
-    res.json({ success: true, students: savedStudents });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// नया छात्र जोड़ें
 router.post('/', async (req, res) => {
   try {
     const student = new Student(req.body);
@@ -63,23 +29,7 @@ router.post('/', async (req, res) => {
     if (req.body.familyCode && req.body.isFamilyFee) {
       await Family.findOneAndUpdate(
         { code: req.body.familyCode },
-        { code: req.body.familyCode, monthlyFee: req.body.monthlyFee, dueDate: req.body.dueDate },
-        { upsert: true, new: true }
-      );
-    }
-    res.json(student);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.put('/:id', async (req, res) => {
-  try {
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (req.body.familyCode && req.body.isFamilyFee) {
-      await Family.findOneAndUpdate(
-        { code: req.body.familyCode },
-        { monthlyFee: req.body.monthlyFee },
+        { monthlyFee: req.body.monthlyFee, dueDate: req.body.dueDate },
         { upsert: true }
       );
     }
@@ -89,15 +39,17 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// इंडिविजुअल छात्र की फीस अपडेट (Non-Family Students)
 router.put('/:id/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note, paidOn } = req.body;
     const student = await Student.findById(req.params.id);
+    
+    if (!student) return res.status(404).json({ error: "छात्र नहीं मिला" });
+
+    const paidOnDate = paidOn || (status !== 'unpaid' ? getFormattedTodayDate() : 'बाकी');
     const idx = student.fees.findIndex(f => f.month === month && f.year === year);
     
-    // अगर अन-डू हो रहा है तो जो पुरानी डेट पास की है वही रखेंगे, वरना आज की डेट
-    const paidOnDate = paidOn ? paidOn : (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
-
     if (idx > -1) {
       student.fees[idx] = { month, year, status, paidAmount, note, paidOn: paidOnDate };
     } else {
@@ -110,76 +62,46 @@ router.put('/:id/fees', async (req, res) => {
   }
 });
 
-// फ़ैमिली फीस अपडेट करने का कंबाइंड स्प्लिट लॉजिक
+// फैमिली फीस अपडेट (प्रोफेशनल तरीका: अब Family मॉडल में पेमेंट हिस्ट्री सेव होगी)
 router.put('/family/:code/fees', async (req, res) => {
   try {
     const { month, year, status, paidAmount, note } = req.body;
+    const paidOnDate = (status !== 'unpaid') ? getFormattedTodayDate() : 'बाकी';
+
+    // 1. फैमिली के पेमेंट हिस्ट्री में रिकॉर्ड जोड़ें
+    await Family.findOneAndUpdate(
+      { code: req.params.code },
+      { 
+        $push: { 
+          paymentHistory: { month, year, paidAmount, paidOn: paidOnDate, note } 
+        } 
+      }
+    );
+
+    // 2. छात्रों के फीस एरे को अपडेट करें
     const students = await Student.find({ familyCode: req.params.code, active: true });
-    const paidOnDate = (status === 'paid' || status === 'advance' || status === 'partial') ? getFormattedTodayDate() : 'बाकी';
-
     const totalMembers = students.length;
-    if (totalMembers > 0) {
-      const isPaying = (status === 'paid' || status === 'advance' || status === 'partial');
-      const totalToDistribute = isPaying ? paidAmount : 0;
+    const share = totalMembers > 0 ? Math.round(paidAmount / totalMembers) : 0;
 
-      const familyConfig = await Family.findOne({ code: req.params.code });
-      const isFixedFamilyFee = students.some(s => s.isFamilyFee) || (familyConfig ? true : false);
+    for (let s of students) {
+      const idx = s.fees.findIndex(f => f.month === month && f.year === year);
+      const feeData = { month, year, status, paidAmount: share, note: note || "Family Payment", paidOn: paidOnDate };
 
-      let totalExpectedFee = 0;
-      if (isFixedFamilyFee && familyConfig) {
-        totalExpectedFee = familyConfig.monthlyFee || 800;
-      } else {
-        totalExpectedFee = students.reduce((sum, s) => sum + (s.monthlyFee || 0), 0);
-      }
-
-      let distributedSum = 0;
-      for (let i = 0; i < totalMembers; i++) {
-        const s = students[i];
-        let memberShare = 0;
-
-        if (isPaying) {
-          if (i === totalMembers - 1) {
-            memberShare = totalToDistribute - distributedSum;
-          } else if (isFixedFamilyFee) {
-            memberShare = Math.round(totalToDistribute / totalMembers);
-            distributedSum += memberShare;
-          } else if (totalExpectedFee > 0) {
-            memberShare = Math.round(totalToDistribute * ((s.monthlyFee || 0) / totalExpectedFee));
-            distributedSum += memberShare;
-          } else {
-            memberShare = Math.round(totalToDistribute / totalMembers);
-            distributedSum += memberShare;
-          }
-        }
-
-        const idx = s.fees.findIndex(f => f.month === month && f.year === year);
-        if (idx > -1) {
-          s.fees[idx] = { month, year, status, paidAmount: memberShare, note, paidOn: paidOnDate };
-        } else {
-          s.fees.push({ month, year, status, paidAmount: memberShare, note, paidOn: paidOnDate });
-        }
-        await s.save();
-      }
+      if (idx > -1) s.fees[idx] = feeData;
+      else s.fees.push(feeData);
+      await s.save();
     }
-    res.json({ message: 'done' });
+    res.json({ message: 'Family payment recorded successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete('/family/:code', async (req, res) => {
-  try {
-    await Student.deleteMany({ familyCode: req.params.code });
-    res.json({ message: 'Family deleted' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// छात्र को हटाना (सक्रिय स्टेटस बंद करना)
 router.delete('/:id', async (req, res) => {
   try {
     await Student.findByIdAndUpdate(req.params.id, { active: false });
-    res.json({ message: 'done' });
+    res.json({ message: 'छात्र को निष्क्रिय किया गया' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
