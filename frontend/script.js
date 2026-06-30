@@ -10,7 +10,7 @@ let currentMonth = null;
 let currentYear = null;
 let isFamilyMark = false;
 
-// क्लीन शुरुआत के लिए मंथ फिल्टर
+// क्लीन शुरुआत के लिए मंथ फिल्टर (1 जुलाई 2026 से पहले का छुपाने के लिए)
 function isMonthBeforeJoin(monthName, year, joinDateStr) {
   const monthIdx = MONTHS.indexOf(monthName);
   let startYear = 2026, startMonthIdx = 6; // default July 2026
@@ -156,7 +156,7 @@ function renderStudents(list) {
     </div>`;
   });
 
-  // 2. सिंगल स्टूडेंट्स
+  // 2. सिंगल स्टूडेंट्स रेंडरिंग
   solo.forEach(student => {
     const isDue = hasDue(student);
     const headerClass = student.verify ? 'verify' : isDue ? 'due' : '';
@@ -279,23 +279,23 @@ function filterStudents() {
   renderStudents(filtered);
 }
 
-// ----------------- + STUDENT BUTTON CONTROLS -----------------
-function openSingleStudentModal() {
-  document.getElementById('singleStudentModal').classList.add('open');
+// ----------------- + STUDENT BUTTON CONTROLS (सुधरा हुआ तालमेल) -----------------
+function openAddStudentModal() {
+  document.getElementById('addStudentModal').classList.add('open');
 }
 
-async function saveSingleStudent() {
-  const name = document.getElementById('sName').value.trim();
-  const fee = parseInt(document.getElementById('sFee').value) || 0;
+async function saveIndividualStudent() {
+  const name = document.getElementById('stuName').value.trim();
+  const fee = parseInt(document.getElementById('stuFee').value) || 0;
   if (!name || fee <= 0) return showCustomAlert('कृपया छात्र का नाम और मंथली फीस सही से दर्ज करें!');
 
   const data = {
     name,
-    identity: document.getElementById('sIdentity').value.trim(),
+    identity: document.getElementById('stuIdentity').value.trim(),
     monthlyFee: fee,
-    batch: document.getElementById('sBatch').value,
-    dueDate: parseInt(document.getElementById('sDueDate').value),
-    joinDate: document.getElementById('sJoinDate').value,
+    batch: document.getElementById('stuBatch').value,
+    dueDate: parseInt(document.getElementById('stuDueDate').value),
+    joinDate: document.getElementById('stuJoinDate').value,
     isFamilyFee: false
   };
 
@@ -306,19 +306,19 @@ async function saveSingleStudent() {
       body: JSON.stringify(data)
     });
     if (response.ok) {
-      closeModal('singleStudentModal');
+      closeModal('addStudentModal');
       loadStudents();
-      ['sName', 'sIdentity', 'sFee'].forEach(id => document.getElementById(id).value = '');
+      ['stuName', 'stuIdentity', 'stuFee'].forEach(id => document.getElementById(id).value = '');
     }
   } catch (err) {
     showCustomAlert('बचाने में त्रुटि: ' + err.message);
   }
 }
 
-// ----------------- + FAMILY BUTTON CONTROLS -----------------
+// ----------------- + FAMILY BUTTON CONTROLS (सुधरा हुआ तालमेल) -----------------
 let currentFamilyMemberRows = 1;
 
-function openFamilyModal() {
+function openAddFamilyModal() {
   currentFamilyMemberRows = 1;
   document.getElementById('famMembersContainer').innerHTML = `
     <div class="family-member-input-row" style="display: flex; gap: 0.5rem; width:100%;">
@@ -326,12 +326,12 @@ function openFamilyModal() {
       <input type="number" placeholder="फीस (₹) *" class="f-input-fee" style="flex: 1; display: none;">
     </div>
   `;
-  document.getElementById('fCode').value = '';
+  document.getElementById('famCode').value = '';
   document.getElementById('famIdentity').value = '';
-  document.getElementById('fTotalFee').value = '800';
+  document.getElementById('famTotalFee').value = '800';
   document.getElementById('famSplitType').value = 'auto';
   toggleFamilyFormSplitFields();
-  document.getElementById('familyModal').classList.add('open');
+  document.getElementById('addFamilyModal').classList.add('open');
 }
 
 function toggleFamilyFormSplitFields() {
@@ -366,7 +366,7 @@ function addMoreMemberField() {
 }
 
 async function saveFamilyGroup() {
-  const familyCode = document.getElementById('fCode').value.trim().toUpperCase();
+  const familyCode = document.getElementById('famCode').value.trim().toUpperCase();
   if (!familyCode) return showCustomAlert('कृपया फ़ैमिली कोड दर्ज करें!');
 
   const splitType = document.getElementById('famSplitType').value;
@@ -392,7 +392,7 @@ async function saveFamilyGroup() {
 
   if (members.length === 0) return showCustomAlert('कम से कम एक सदस्य का नाम अनिवार्य है!');
 
-  const totalFamilyFee = splitType === 'auto' ? (parseInt(document.getElementById('fTotalFee').value) || 0) : calculatedTotal;
+  const totalFamilyFee = splitType === 'auto' ? (parseInt(document.getElementById('famTotalFee').value) || 0) : calculatedTotal;
 
   const data = {
     familyCode,
@@ -413,7 +413,7 @@ async function saveFamilyGroup() {
       body: JSON.stringify(data)
     });
     if (response.ok) {
-      closeModal('familyModal');
+      closeModal('addFamilyModal');
       loadStudents();
     }
   } catch (err) {
