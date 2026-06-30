@@ -238,7 +238,7 @@ nav {
   cursor: pointer;
 }
 
-/* INVOICE / RECEIPT STYLING (Phase 2 Receipt System) */
+/* INVOICE / RECEIPT STYLING */
 .receipt-box {
   max-width: 420px !important;
   border-radius: 16px !important;
@@ -417,6 +417,54 @@ nav {
   font-size: 0.75rem;
   font-weight: 700;
   margin-right: 0.3rem;
+}
+
+.member-actions-tray {
+  width: 100%;
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1.5px dashed #e0e6e2;
+  padding-top: 0.8rem;
+}
+
+.member-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fdfdfd;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.member-sub-row span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dark);
+  flex: 1;
+  min-width: 100px;
+}
+
+.btn-sub {
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-sub.edit {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.btn-sub.red {
+  border-color: var(--red);
+  color: var(--red);
 }
 
 @media(min-width: 600px) {

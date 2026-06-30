@@ -13,10 +13,13 @@
   <!-- NAVBAR -->
   <nav>
     <span class="logo">📚 Shadab Coaching Centre</span>
-    <button class="btn-add" onclick="openAddModal()">+ Student</button>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="btn-add-student" onclick="openAddStudentModal()">+ Student</button>
+      <button class="btn-add-family" onclick="openAddFamilyModal()">👪 + Family</button>
+    </div>
   </nav>
   
-  <!-- LIVE DASHBOARD (Phase 3 Dashboard & Reports) -->
+  <!-- LIVE DASHBOARD (आज की फीस, महीने का कलेक्शन और बकाया) -->
   <div class="dashboard-grid">
     <div class="dash-card card-green">
       <span class="dash-icon">💰</span>
@@ -62,40 +65,21 @@
     <div id="studentList"></div>
   </div>
   
-  <!-- ADD STUDENT MODAL -->
-  <div class="modal" id="addModal">
+  <!-- 1. ADD INDIVIDUAL STUDENT MODAL -->
+  <div class="modal" id="addStudentModal">
     <div class="modal-box">
-      <h2>नया Student जोड़ें</h2>
+      <h2>नया Student जोड़ें (Individual)</h2>
       <div class="form-group">
-        <input type="text" id="newName" placeholder="Student का नाम *" />
+        <input type="text" id="stuName" placeholder="Student का नाम *" />
       </div>
       <div class="form-group">
-        <input type="text" id="newIdentity" placeholder="पहचान (Family code / Guardian)" />
+        <input type="text" id="stuIdentity" placeholder="पहचान (Guardian Name)" />
       </div>
       <div class="form-group">
-        <input type="text" id="newFamilyCode" placeholder="Family Code (AA, KA, MITTHU...)" />
-      </div>
-      
-      <!-- FEE TYPE OPTIONS -->
-      <div class="fee-type-section">
-        <p class="fee-type-title">Fee Type चुनें:</p>
-        <div class="radio-group">
-          <label class="radio-label">
-            <input type="radio" name="feeTypeRadio" id="radioIndividual" value="Individual" checked />
-            <span>Individual Fee (अकेला)</span>
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="feeTypeRadio" id="radioFamily" value="Family" />
-            <span>Family Fee (परिवार)</span>
-          </label>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <input type="number" id="newFee" placeholder="Monthly Fee (₹)" />
+        <input type="number" id="stuFee" placeholder="Monthly Fee (₹)" />
       </div>
       <div class="form-group">
-        <select id="newBatch">
+        <select id="stuBatch">
           <option value="">Batch select करें</option>
           <option value="1-5">Class 1-5</option>
           <option value="6-8">Class 6-8</option>
@@ -105,25 +89,90 @@
         </select>
       </div>
       <div class="form-group">
-        <select id="newDueDate">
+        <select id="stuDueDate">
           <option value="1">1 तारीख</option>
           <option value="15">15 तारीख</option>
         </select>
       </div>
       <div class="form-group">
         <label style="font-size: 0.8rem; color:#666; display:block; margin-bottom:0.2rem;">Join Date (1 जुलाई 2026 से शुरू करें):</label>
-        <input type="date" id="newJoinDate" />
+        <input type="date" id="stuJoinDate" value="2026-07-01" />
       </div>
       <div class="modal-btns">
-        <button class="btn-confirm" onclick="addStudent()">Save</button>
-        <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+        <button class="btn-confirm" onclick="saveIndividualStudent()">Save</button>
+        <button class="btn-cancel" onclick="closeModal('addStudentModal')">Cancel</button>
       </div>
     </div>
   </div>
   
-  <!-- DIARY BASED HISAB LEDGER MODAL -->
+  <!-- 2. ADD FAMILY GROUP MODAL -->
+  <div class="modal" id="addFamilyModal">
+    <div class="modal-box">
+      <h2>👪 नया परिवार जोड़ें (Family)</h2>
+      <div class="form-group">
+        <input type="text" id="famCode" placeholder="Family Code * (AA, KA, SZA...)" />
+      </div>
+      <div class="form-group">
+        <input type="text" id="famIdentity" placeholder="पहचान / अभिभावक का नाम" />
+      </div>
+      
+      <!-- splitType options -->
+      <div class="fee-type-section">
+        <p class="fee-type-title">डील का प्रकार चुनें (Split Type):</p>
+        <select id="famSplitType" onchange="toggleFamilyFormSplitFields()" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1.5px solid #dcdcdc; background: white;">
+          <option value="auto">Auto-Split (कुल पैकेज फिक्स - जैसे SZA का 800)</option>
+          <option value="manual">Manual-Split (सबका अलग तय हिस्सा - जैसे आरफा का 300, अयान का 500)</option>
+        </select>
+      </div>
+      
+      <div class="form-group" id="famTotalFeeRow">
+        <input type="number" id="famTotalFee" placeholder="कुल फिक्स पैकेज फीस (₹) *" value="800" />
+      </div>
+      
+      <!-- भाई-बहनों की लिस्ट -->
+      <p style="font-weight: 700; font-size: 0.85rem; color: var(--green); margin-bottom: 0.4rem;">परिवार के सदस्य:</p>
+      <div id="famMembersContainer" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.6rem;">
+        <!-- पहला सदस्य हमेशा डिफ़ॉल्ट रहेगा -->
+        <div class="family-member-input-row" style="display: flex; gap: 0.5rem; width:100%;">
+          <input type="text" placeholder="सदस्य 1 का नाम *" class="f-input-name" style="flex: 2;" required>
+          <input type="number" placeholder="फीस (₹) *" class="f-input-fee" style="flex: 1; display: none;">
+        </div>
+      </div>
+      
+      <button onclick="addMoreMemberField()" style="background: #e8f5ee; color: var(--green); border: 1px dashed var(--green); border-radius: 8px; width: 100%; padding: 0.5rem; font-weight: bold; cursor: pointer; margin-bottom: 1rem;">
+        ➕ एक और सदस्य जोड़ें
+      </button>
+      
+      <div class="form-group">
+        <select id="famBatch">
+          <option value="">Batch select करें</option>
+          <option value="1-5">Class 1-5</option>
+          <option value="6-8">Class 6-8</option>
+          <option value="9">Class 9</option>
+          <option value="10">Class 10</option>
+          <option value="CBSE">CBSE</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <select id="famDueDate">
+          <option value="1">1 तारीख</option>
+          <option value="15">15 तारीख</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="font-size: 0.8rem; color:#666; display:block; margin-bottom:0.2rem;">Join Date:</label>
+        <input type="date" id="famJoinDate" value="2026-07-01" />
+      </div>
+      <div class="modal-btns">
+        <button class="btn-confirm" onclick="saveFamilyGroup()">Save Family</button>
+        <button class="btn-cancel" onclick="closeModal('addFamilyModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 3. डायरी स्टाइल हिसाब लेजर पॉपअप -->
   <div class="modal" id="hisabModal">
-    <div class="modal-box hisab-box">
+    <div class="modal-box hisab-box" style="max-width: 600px;">
       <div class="hisab-header">
         <h2 id="hisabStudentTitle">Nazeeb का हिसाब</h2>
         <span id="hisabFeeTypeBadge" class="badge badge-blue">Individual Fee</span>
@@ -151,7 +200,7 @@
     </div>
   </div>
   
-  <!-- MARK FEES MODAL -->
+  <!-- 4. मार्क फीस पॉपअप -->
   <div class="modal" id="markModal">
     <div class="modal-box">
       <h2>Fees Mark करें</h2>
@@ -177,7 +226,7 @@
     </div>
   </div>
   
-  <!-- PROFESSIONAL RECEIPT MODAL (Phase 2 Receipt System) -->
+  <!-- 5. प्रोफेशनल रसीद पॉपअप -->
   <div class="modal" id="receiptModal">
     <div class="modal-box receipt-box">
       <div class="receipt-card" id="receiptPrintArea">
@@ -206,7 +255,7 @@
     </div>
   </div>
   
-  <!-- CUSTOM NOTIFICATION MODAL -->
+  <!-- 6. कस्टम अलर्ट पॉपअप -->
   <div class="modal" id="customAlertModal">
     <div class="modal-box" style="max-width: 400px; text-align: center;">
       <h3 style="color: var(--green); margin-bottom: 1rem; font-size: 1.2rem;">सूचना 📢</h3>
@@ -217,7 +266,7 @@
     </div>
   </div>
   
-  <!-- CUSTOM CONFIRMATION MODAL -->
+  <!-- 7. कस्टम कन्फर्म पॉपअप -->
   <div class="modal" id="customConfirmModal">
     <div class="modal-box" style="max-width: 400px; text-align: center;">
       <h3 style="color: var(--red); margin-bottom: 1rem; font-size: 1.2rem;">पुष्टिकरण ⚠️</h3>
