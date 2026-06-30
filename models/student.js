@@ -1,32 +1,108 @@
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
+  
+  // Basic Details
   name: { type: String, required: true },
-  identity: { type: String }, // गार्जियन या पहचान का नाम
-  familyCode: { type: String }, // जैसे: AA, SZA, AR
-  dueDate: { type: Number, enum: [1, 15], default: 1 },
+  identity: { type: String },
+  familyCode: { type: String },
+  
+  dueDate: {
+    type: Number,
+    enum: [1, 15],
+    default: 1
+  },
+  
   batch: {
     type: String,
     enum: ['1-5', '6-8', '9', '10', 'CBSE', ''],
     default: ''
   },
-  monthlyFee: { type: Number, default: 0 }, // इंडिविजुअल फीस
-  isFamilyFee: { type: Boolean, default: false }, // क्या यह फ़िक्स फ़ैमिली डील है
+  
+  monthlyFee: {
+    type: Number,
+    default: 0
+  },
+  
+  isFamilyFee: {
+    type: Boolean,
+    default: false
+  },
+  
+  // ===== NEW V3 FIELDS =====
+  
+  status: {
+    type: String,
+    enum: ['ACTIVE', 'INACTIVE', 'LEFT'],
+    default: 'ACTIVE'
+  },
+  
+  clearTillMonth: {
+    type: Number,
+    default: 6
+  },
+  
+  clearTillYear: {
+    type: Number,
+    default: 2026
+  },
+  
+  openingDue: {
+    type: Number,
+    default: 0
+  },
+  
+  remarks: {
+    type: String,
+    default: ''
+  },
+  
+  inactiveDate: Date,
+  
+  leftDate: Date,
+  
+  rejoinDate: Date,
+  
+  // ==========================
+  
   fees: [{
-    month: { type: String },
-    year: { type: Number },
+    month: String,
+    
+    year: Number,
+    
     status: {
       type: String,
       enum: ['paid', 'unpaid', 'partial', 'advance'],
       default: 'unpaid'
     },
-    paidAmount: { type: Number, default: 0 },
-    paidOn: { type: String, default: 'बाकी' }, // कब दिये (जैसे "29 Jun 2026")
-    note: { type: String }
+    
+    paidAmount: {
+      type: Number,
+      default: 0
+    },
+    
+    paidOn: {
+      type: String,
+      default: 'बाकी'
+    },
+    
+    note: String
   }],
-  joinDate: { type: Date },
-  verify: { type: Boolean, default: false },
-  active: { type: Boolean, default: true }
-}, { timestamps: true });
+  
+  joinDate: Date,
+  
+  verify: {
+    type: Boolean,
+    default: false
+  },
+  
+  active: {
+    type: Boolean,
+    default: true
+  }
+  
+}, {
+  timestamps: true
+});
 
 module.exports = mongoose.model('Student', studentSchema);
